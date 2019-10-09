@@ -1,0 +1,131 @@
+{
+  "format": 1,
+  "restore": {
+    "D:\\WpfChat\\TcpClient\\ChatClient.csproj": {}
+  },
+  "projects": {
+    "D:\\WpfChat\\TcpClient\\ChatClient.csproj": {
+      "version": "1.0.0",
+      "restore": {
+        "projectUniqueName": "D:\\WpfChat\\TcpClient\\ChatClient.csproj",
+        "projectName": "ChatClient",
+        "projectPath": "D:\\WpfChat\\TcpClient\\ChatClient.csproj",
+        "packagesPath": "C:\\Users\\artem.kuchma\\.nuget\\packages\\",
+        "outputPath": "D:\\WpfChat\\TcpClient\\obj\\",
+        "projectStyle": "PackageReference",
+        "fallbackFolders": [
+          "C:\\Program Files\\dotnet\\sdk\\NuGetFallbackFolder"
+        ],
+        "configFilePaths": [
+          "C:\\Users\\artem.kuchma\\AppData\\Roaming\\NuGet\\NuGet.Config",
+          "C:\\Program Files (x86)\\NuGet\\Config\\Microsoft.VisualStudio.Offline.config"
+        ],
+        "originalTargetFrameworks": [
+          "netcoreapp2.2"
+        ],
+        "sources": {
+          "https://api.nuget.org/v3/index.json": {},
+          "https://arm.lmera.ericsson.se/artifactory/api/nuget/v3/proj-sdt-nddp-backup-nuget-local": {}
+        },
+        "frameworks": {
+          "netcoreapp2.2": {
+            "projectReferences": {
+              "D:\\WpfChat\\TcpServer\\ChatServer.csproj": {
+                "projectPath": "D:\\WpfChat\\TcpServer\\ChatServer.csproj"
+              }
+            }
+          }
+        },
+        "warningProperties": {
+          "warnAsError": [
+            "NU1605"
+          ]
+        }
+      },
+      "frameworks": {
+        "netcoreapp2.2": {
+          "dependencies": {
+            "Microsoft.NETCore.App": {
+              "suppressParent": "All",
+              "target": "Package",
+              "version": "[2.2.0, )",
+              "autoReferenced": true
+            }
+          },
+          "imports": [
+            "net461"
+          ],
+          "assetTargetFallback": true,
+          "warn": true
+        }
+      }
+    },
+    "D:\\WpfChat\\TcpServer\\ChatServer.csproj": {
+      "version": "1.0.0",
+      "restore": {
+        "projectUniqueName": "D:\\WpfChat\\TcpServer\\ChatServer.csproj",
+        "projectName": "ChatServer",
+        "projectPath": "D:\\WpfChat\\TcpServer\\ChatServer.csproj",
+        "packagesPath": "C:\\Users\\artem.kuchma\\.nuget\\packages\\",
+        "outputPath": "D:\\WpfChat\\TcpServer\\obj\\",
+        "projectStyle": "PackageReference",
+        "fallbackFolders": [
+          "C:\\Program Files\\dotnet\\sdk\\NuGetFallbackFolder"
+        ],
+        "configFilePaths": [
+          "C:\\Users\\artem.kuchma\\AppData\\Roaming\\NuGet\\NuGet.Config",
+          "C:\\Program Files (x86)\\NuGet\\Config\\Microsoft.VisualStudio.Offline.config"
+        ],
+        "originalTargetFrameworks": [
+          "netcoreapp2.2"
+        ],
+        "sources": {
+          "https://api.nuget.org/v3/index.json": {},
+          "https://arm.lmera.ericsson.se/artifactory/api/nuget/v3/proj-sdt-nddp-backup-nuget-local": {}
+        },
+        "frameworks": {
+          "netcoreapp2.2": {
+            "projectReferences": {
+              "D:\\WpfChat\\WpfChat\\WpfChat.csproj": {
+                "projectPath": "D:\\WpfChat\\WpfChat\\WpfChat.csproj"
+              }
+            }
+          }
+        },
+        "warningProperties": {
+          "warnAsError": [
+            "NU1605"
+          ]
+        }
+      },
+      "frameworks": {
+        "netcoreapp2.2": {
+          "dependencies": {
+            "Microsoft.NETCore.App": {
+              "suppressParent": "All",
+              "target": "Package",
+              "version": "[2.2.0, )",
+              "autoReferenced": true
+            }
+          },
+          "imports": [
+            "net461"
+          ],
+          "assetTargetFallback": true,
+          "warn": true
+        }
+      }
+    },
+    "D:\\WpfChat\\WpfChat\\WpfChat.csproj": {
+      "version": "1.0.0",
+      "restore": {
+        "projectUniqueName": "D:\\WpfChat\\WpfChat\\WpfChat.csproj",
+        "projectName": "WpfChat",
+        "projectPath": "D:\\WpfChat\\WpfChat\\WpfChat.csproj"
+      },
+      "frameworks": {
+        "net472": {}
+      }
+    }
+  }
+}
