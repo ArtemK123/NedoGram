@@ -1,7 +1,7 @@
 {
   "runtimeTarget": {
     "name": ".NETCoreApp,Version=v2.2",
-    "signature": "da39a3ee5e6b4b0d3255bfef95601890afd80709"
+    "signature": ""
   },
   "compilationOptions": {},
   "targets": {
@@ -15,16 +15,8 @@
         }
       },
       "ChatServer/1.0.0": {
-        "dependencies": {
-          "WpfChat": "1.0.0"
-        },
         "runtime": {
           "ChatServer.dll": {}
-        }
-      },
-      "WpfChat/1.0.0": {
-        "runtime": {
-          "WpfChat.exe": {}
         }
       }
     }
@@ -36,11 +28,6 @@
       "sha512": ""
     },
     "ChatServer/1.0.0": {
-      "type": "project",
-      "serviceable": false,
-      "sha512": ""
-    },
-    "WpfChat/1.0.0": {
       "type": "project",
       "serviceable": false,
       "sha512": ""

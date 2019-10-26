@@ -11,6 +11,5 @@ D:\WpfChat\WpfChat\obj\Debug\MainWindow.baml
 D:\WpfChat\WpfChat\obj\Debug\WpfChat.g.resources
 D:\WpfChat\WpfChat\obj\Debug\WpfChat.Properties.Resources.resources
 D:\WpfChat\WpfChat\obj\Debug\WpfChat.csproj.GenerateResource.cache
-D:\WpfChat\WpfChat\obj\Debug\WpfChat.csproj.CoreCompileInputs.cache
 D:\WpfChat\WpfChat\obj\Debug\WpfChat.exe
 D:\WpfChat\WpfChat\obj\Debug\WpfChat.pdb

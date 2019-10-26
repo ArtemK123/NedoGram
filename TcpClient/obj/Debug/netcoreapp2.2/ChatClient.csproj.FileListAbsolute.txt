@@ -4,12 +4,8 @@ D:\WpfChat\TcpClient\bin\Debug\netcoreapp2.2\ChatClient.runtimeconfig.dev.json
 D:\WpfChat\TcpClient\bin\Debug\netcoreapp2.2\ChatClient.dll
 D:\WpfChat\TcpClient\bin\Debug\netcoreapp2.2\ChatClient.pdb
 D:\WpfChat\TcpClient\bin\Debug\netcoreapp2.2\ChatServer.dll
-D:\WpfChat\TcpClient\bin\Debug\netcoreapp2.2\WpfChat.exe
 D:\WpfChat\TcpClient\bin\Debug\netcoreapp2.2\ChatServer.pdb
-D:\WpfChat\TcpClient\bin\Debug\netcoreapp2.2\WpfChat.pdb
-D:\WpfChat\TcpClient\bin\Debug\netcoreapp2.2\WpfChat.exe.config
 D:\WpfChat\TcpClient\obj\Debug\netcoreapp2.2\ChatClient.csprojAssemblyReference.cache
-D:\WpfChat\TcpClient\obj\Debug\netcoreapp2.2\ChatClient.csproj.CoreCompileInputs.cache
 D:\WpfChat\TcpClient\obj\Debug\netcoreapp2.2\ChatClient.AssemblyInfoInputs.cache
 D:\WpfChat\TcpClient\obj\Debug\netcoreapp2.2\ChatClient.AssemblyInfo.cs
 D:\WpfChat\TcpClient\obj\Debug\netcoreapp2.2\ChatClient.csproj.CopyComplete

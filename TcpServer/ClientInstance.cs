@@ -1,9 +1,6 @@
 ﻿using System;
-using System.Collections.Generic;
-using System.Linq;
 using System.Net.Sockets;
 using System.Text;
-using System.Threading.Tasks;
 
 namespace ChatServer
 {
@@ -12,7 +9,7 @@ namespace ChatServer
         protected internal string Id { get; private set; }
         protected internal NetworkStream Stream { get; private set; }
         string userName;
-        System.Net.Sockets.TcpClient client;
+        TcpClient client;
         ServerInstance server; // объект сервера
 
         public ClientInstance(TcpClient tcpClient, ServerInstance serverInstance)
@@ -48,7 +45,7 @@ namespace ChatServer
                     }
                     catch
                     {
-                        message = String.Format("{0}: покинул чат", userName);
+                        message = String.Format("{0}: left chat", userName);
                         Console.WriteLine(message);
                         server.BroadcastMessage(message, this.Id);
                         break;
@@ -86,10 +83,8 @@ namespace ChatServer
         // закрытие подключения
         protected internal void Close()
         {
-            if (Stream != null)
-                Stream.Close();
-            if (client != null)
-                client.Close();
+            Stream?.Close();
+            client?.Close();
         }
     }
 }

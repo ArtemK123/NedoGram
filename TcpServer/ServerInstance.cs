@@ -2,11 +2,10 @@
 using System.Collections.Generic;
 using System.Linq;
 using System.Net;
+using System.Net.NetworkInformation;
 using System.Net.Sockets;
 using System.Text;
 using System.Threading;
-using System.Threading.Tasks;
-using WpfChat;
 
 namespace ChatServer
 {
@@ -32,16 +31,19 @@ namespace ChatServer
         {
             try
             {
-                tcpListener = new TcpListener(IPAddress.Any, 8888);
+                int port = FindAvailablePort(8888);
+
+                tcpListener = new TcpListener(IPAddress.Any, port);
                 tcpListener.Start();
-                Console.WriteLine("Сервер запущен. Ожидание подключений...");
+                Console.WriteLine($"Сервер запущен на порте {port}. Ожидание подключений...");
 
                 while (true)
                 {
                     TcpClient tcpClient = tcpListener.AcceptTcpClient();
+                    Console.WriteLine("New client connected");
 
                     ClientInstance clientObject = new ClientInstance(tcpClient, this);
-                    Thread clientThread = new Thread(new ThreadStart(clientObject.Process));
+                    Thread clientThread = new Thread(clientObject.Process);
                     clientThread.Start();
                 }
             }
@@ -50,6 +52,24 @@ namespace ChatServer
                 Console.WriteLine(ex.Message);
                 Disconnect();
             }
+        }
+
+        private static int FindAvailablePort(int fromPort)
+        {
+            IPGlobalProperties ipGlobalProperties = IPGlobalProperties.GetIPGlobalProperties();
+            TcpConnectionInformation[] tcpConnInfoArray = ipGlobalProperties.GetActiveTcpConnections();
+            int port = fromPort;
+            while (IsPortAlreadyUsed(tcpConnInfoArray, port))
+            {
+                port++;
+            }
+
+            return port;
+        }
+
+        private static bool IsPortAlreadyUsed(TcpConnectionInformation[] tcpConnInfoArray, int port)
+        {
+            return tcpConnInfoArray.FirstOrDefault(tcpConnectionInfo => tcpConnectionInfo.LocalEndPoint.Port == port) != null;
         }
 
         // трансляция сообщения подключенным клиентам

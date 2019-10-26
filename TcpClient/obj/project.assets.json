@@ -211,23 +211,11 @@
       "ChatServer/1.0.0": {
         "type": "project",
         "framework": ".NETCoreApp,Version=v2.2",
-        "dependencies": {
-          "WpfChat": "1.0.0"
-        },
         "compile": {
           "bin/placeholder/ChatServer.dll": {}
         },
         "runtime": {
           "bin/placeholder/ChatServer.dll": {}
-        }
-      },
-      "WpfChat/1.0.0": {
-        "type": "project",
-        "compile": {
-          "bin/placeholder/WpfChat.dll": {}
-        },
-        "runtime": {
-          "bin/placeholder/WpfChat.dll": {}
         }
       }
     }
@@ -705,11 +693,6 @@
       "type": "project",
       "path": "../TcpServer/ChatServer.csproj",
       "msbuildProject": "../TcpServer/ChatServer.csproj"
-    },
-    "WpfChat/1.0.0": {
-      "type": "project",
-      "path": "../WpfChat/WpfChat.csproj",
-      "msbuildProject": "../WpfChat/WpfChat.csproj"
     }
   },
   "projectFileDependencyGroups": {
@@ -771,10 +754,16 @@
           }
         },
         "imports": [
-          "net461"
+          "net461",
+          "net462",
+          "net47",
+          "net471",
+          "net472",
+          "net48"
         ],
         "assetTargetFallback": true,
-        "warn": true
+        "warn": true,
+        "runtimeIdentifierGraphPath": "C:\\Program Files\\dotnet\\sdk\\3.0.100\\RuntimeIdentifierGraph.json"
       }
     }
   }

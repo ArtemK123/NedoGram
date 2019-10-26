@@ -53,10 +53,16 @@
             }
           },
           "imports": [
-            "net461"
+            "net461",
+            "net462",
+            "net47",
+            "net471",
+            "net472",
+            "net48"
           ],
           "assetTargetFallback": true,
-          "warn": true
+          "warn": true,
+          "runtimeIdentifierGraphPath": "C:\\Program Files\\dotnet\\sdk\\3.0.100\\RuntimeIdentifierGraph.json"
         }
       }
     },
@@ -85,11 +91,7 @@
         },
         "frameworks": {
           "netcoreapp2.2": {
-            "projectReferences": {
-              "D:\\WpfChat\\WpfChat\\WpfChat.csproj": {
-                "projectPath": "D:\\WpfChat\\WpfChat\\WpfChat.csproj"
-              }
-            }
+            "projectReferences": {}
           }
         },
         "warningProperties": {
@@ -109,22 +111,17 @@
             }
           },
           "imports": [
-            "net461"
+            "net461",
+            "net462",
+            "net47",
+            "net471",
+            "net472",
+            "net48"
           ],
           "assetTargetFallback": true,
-          "warn": true
+          "warn": true,
+          "runtimeIdentifierGraphPath": "C:\\Program Files\\dotnet\\sdk\\3.0.100\\RuntimeIdentifierGraph.json"
         }
-      }
-    },
-    "D:\\WpfChat\\WpfChat\\WpfChat.csproj": {
-      "version": "1.0.0",
-      "restore": {
-        "projectUniqueName": "D:\\WpfChat\\WpfChat\\WpfChat.csproj",
-        "projectName": "WpfChat",
-        "projectPath": "D:\\WpfChat\\WpfChat\\WpfChat.csproj"
-      },
-      "frameworks": {
-        "net472": {}
       }
     }
   }
