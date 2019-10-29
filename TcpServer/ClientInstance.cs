@@ -6,18 +6,20 @@ namespace ChatServer
 {
     public class ClientInstance
     {
-        protected internal string Id { get; private set; }
+        protected internal string Id { get; }
+
         protected internal NetworkStream Stream { get; private set; }
-        string userName;
-        TcpClient client;
-        ServerInstance server; // объект сервера
+
+        public string UserName { get; private set; } = "Undefined UserName";
+
+        readonly TcpClient client;
+        readonly ServerInstance server; 
 
         public ClientInstance(TcpClient tcpClient, ServerInstance serverInstance)
         {
             Id = Guid.NewGuid().ToString();
             client = tcpClient;
             server = serverInstance;
-            serverInstance.AddConnection(this);
         }
 
         public void Process()
@@ -25,29 +27,27 @@ namespace ChatServer
             try
             {
                 Stream = client.GetStream();
-                // получаем имя пользователя
                 string message = GetMessage();
-                userName = message;
+                UserName = message;
 
-                message = userName + " вошел в чат";
-                // посылаем сообщение о входе в чат всем подключенным пользователям
-                server.BroadcastMessage(message, this.Id);
+                message = UserName + " connected";
+                server.BroadcastMessage(message, this);
                 Console.WriteLine(message);
-                // в бесконечном цикле получаем сообщения от клиента
+
                 while (true)
                 {
                     try
                     {
                         message = GetMessage();
-                        message = String.Format("{0}: {1}", userName, message);
+                        message = $"{UserName}: {message}";
                         Console.WriteLine(message);
-                        server.BroadcastMessage(message, this.Id);
+                        server.BroadcastMessage(message, this);
                     }
                     catch
                     {
-                        message = String.Format("{0}: left chat", userName);
+                        message = $"{UserName}: left chat";
                         Console.WriteLine(message);
-                        server.BroadcastMessage(message, this.Id);
+                        server.BroadcastMessage(message, this);
                         break;
                     }
                 }
@@ -58,29 +58,31 @@ namespace ChatServer
             }
             finally
             {
-                // в случае выхода из цикла закрываем ресурсы
-                server.RemoveConnection(this.Id);
+                server.RemoveConnection(this);
                 Close();
             }
         }
 
-        // чтение входящего сообщения и преобразование в строку
+        public void SendMessage(byte[] messageBuffer)
+        {
+            this.Stream.Write(messageBuffer, 0 , messageBuffer.Length);
+        }
+
         private string GetMessage()
         {
-            byte[] data = new byte[64]; // буфер для получаемых данных
+            byte[] data = new byte[64];
             StringBuilder builder = new StringBuilder();
-            int bytes = 0;
+            Encoding encoding = new UnicodeEncoding(false, true, true);
+
             do
             {
-                bytes = Stream.Read(data, 0, data.Length);
-                builder.Append(Encoding.Unicode.GetString(data, 0, bytes));
-            }
-            while (Stream.DataAvailable);
+                int bytes = Stream.Read(data, 0, data.Length);
+                builder.Append(encoding.GetString(data, 0, bytes));
+            } while (Stream.DataAvailable);
 
             return builder.ToString();
         }
 
-        // закрытие подключения
         protected internal void Close()
         {
             Stream?.Close();

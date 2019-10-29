@@ -2,7 +2,6 @@
 using System.Collections.Generic;
 using System.Linq;
 using System.Net;
-using System.Net.NetworkInformation;
 using System.Net.Sockets;
 using System.Text;
 using System.Threading;
@@ -11,39 +10,26 @@ namespace ChatServer
 {
     public class ServerInstance
     {
-        static TcpListener tcpListener; // сервер для прослушивания
-        List<ClientInstance> clients = new List<ClientInstance>(); // все подключения
+        private static TcpListener tcpListener;
+        private readonly List<ClientInstance> clients = new List<ClientInstance>();
 
-        protected internal void AddConnection(ClientInstance clientObject)
-        {
-            clients.Add(clientObject);
-        }
-        protected internal void RemoveConnection(string id)
-        {
-            // получаем по id закрытое подключение
-            ClientInstance client = clients.FirstOrDefault(c => c.Id == id);
-            // и удаляем его из списка подключений
-            if (client != null)
-                clients.Remove(client);
-        }
-        // прослушивание входящих подключений
-        protected internal void Listen()
+        public void Listen(int port)
         {
             try
             {
-                int port = FindAvailablePort(8888);
-
                 tcpListener = new TcpListener(IPAddress.Any, port);
                 tcpListener.Start();
-                Console.WriteLine($"Сервер запущен на порте {port}. Ожидание подключений...");
+                Console.WriteLine($"Server running on the port {port}. Waiting for new clients...");
 
                 while (true)
                 {
                     TcpClient tcpClient = tcpListener.AcceptTcpClient();
+                    
                     Console.WriteLine("New client connected");
 
-                    ClientInstance clientObject = new ClientInstance(tcpClient, this);
-                    Thread clientThread = new Thread(clientObject.Process);
+                    ClientInstance clientInstance = new ClientInstance(tcpClient, this);
+                    clients.Add(clientInstance);
+                    Thread clientThread = new Thread(clientInstance.Process);
                     clientThread.Start();
                 }
             }
@@ -54,46 +40,33 @@ namespace ChatServer
             }
         }
 
-        private static int FindAvailablePort(int fromPort)
+        protected internal void RemoveConnection(ClientInstance clientInstance)
         {
-            IPGlobalProperties ipGlobalProperties = IPGlobalProperties.GetIPGlobalProperties();
-            TcpConnectionInformation[] tcpConnInfoArray = ipGlobalProperties.GetActiveTcpConnections();
-            int port = fromPort;
-            while (IsPortAlreadyUsed(tcpConnInfoArray, port))
+            if (clientInstance != null)
             {
-                port++;
-            }
-
-            return port;
-        }
-
-        private static bool IsPortAlreadyUsed(TcpConnectionInformation[] tcpConnInfoArray, int port)
-        {
-            return tcpConnInfoArray.FirstOrDefault(tcpConnectionInfo => tcpConnectionInfo.LocalEndPoint.Port == port) != null;
-        }
-
-        // трансляция сообщения подключенным клиентам
-        protected internal void BroadcastMessage(string message, string id)
-        {
-            byte[] data = Encoding.Unicode.GetBytes(message);
-            for (int i = 0; i < clients.Count; i++)
-            {
-                if (clients[i].Id != id) // если id клиента не равно id отправляющего
-                {
-                    clients[i].Stream.Write(data, 0, data.Length); //передача данных
-                }
+                BroadcastMessage($"{clientInstance.UserName} left", clientInstance);
+                clients.Remove(clientInstance);
             }
         }
-        // отключение всех клиентов
+
+        protected internal void BroadcastMessage(string message, ClientInstance sender)
+        {
+            byte[] messageBuffer = Encoding.Unicode.GetBytes(message);
+            foreach (ClientInstance clientInstance in clients.Where(client => !client.Id.Equals(sender.Id)))
+            {
+                clientInstance.SendMessage(messageBuffer);
+            }
+        }
+
         protected internal void Disconnect()
         {
-            tcpListener.Stop(); //остановка сервера
+            tcpListener.Stop();
 
-            for (int i = 0; i < clients.Count; i++)
+            foreach (ClientInstance client in clients)
             {
-                clients[i].Close(); //отключение клиента
+                client.Close();
             }
-            Environment.Exit(0); //завершение процесса
+            Environment.Exit(0);
         }
     }
 }

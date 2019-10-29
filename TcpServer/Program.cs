@@ -7,16 +7,16 @@ namespace ChatServer
     {
         class Program
         {
-            static ServerInstance server; // сервер
-            static Thread listenThread; // потока для прослушивания
+            static ServerInstance server; 
+            static Thread listenThread;
 
             static void Main(string[] args)
             {
                 try
                 {
                     server = new ServerInstance();
-                    listenThread = new Thread(server.Listen);
-                    listenThread.Start(); //старт потока
+                    listenThread = new Thread(() => server.Listen(8888));
+                    listenThread.Start();
                 }
                 catch (Exception ex)
                 {
