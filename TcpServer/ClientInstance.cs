@@ -7,21 +7,17 @@ namespace ChatServer
     public class ClientInstance
     {
         protected internal string Id { get; }
-
         protected internal NetworkStream Stream { get; private set; }
-
         public string UserName { get; private set; } = "Undefined UserName";
 
         readonly TcpClient client;
         readonly ServerInstance server; 
-
         public ClientInstance(TcpClient tcpClient, ServerInstance serverInstance)
         {
             Id = Guid.NewGuid().ToString();
             client = tcpClient;
             server = serverInstance;
         }
-
         public void Process()
         {
             try
@@ -43,18 +39,26 @@ namespace ChatServer
                         Console.WriteLine(message);
                         server.BroadcastMessage(message, this);
                     }
-                    catch
+                    catch(Exception e)
                     {
-                        message = $"{UserName}: left chat";
-                        Console.WriteLine(message);
-                        server.BroadcastMessage(message, this);
-                        break;
+                        //message = $"{UserName}: left chat";
+                        //Console.WriteLine(message);
+                        //server.BroadcastMessage(message, this);
+                        throw e;
                     }
                 }
             }
-            catch (Exception e)
+            catch (DecoderFallbackException)
             {
-                Console.WriteLine(e.Message);
+                Console.WriteLine("Error while decoding message");
+            }
+            catch (EncoderFallbackException )
+            {
+                Console.WriteLine("Error while encoding message");
+            }
+            catch (Exception exception)
+            {
+                Console.WriteLine(exception.Message);
             }
             finally
             {
@@ -72,12 +76,11 @@ namespace ChatServer
         {
             byte[] data = new byte[64];
             StringBuilder builder = new StringBuilder();
-            Encoding encoding = new UnicodeEncoding(false, true, true);
 
             do
             {
                 int bytes = Stream.Read(data, 0, data.Length);
-                builder.Append(encoding.GetString(data, 0, bytes));
+                builder.Append(server.Encoding.GetString(data, 0, bytes));
             } while (Stream.DataAvailable);
 
             return builder.ToString();

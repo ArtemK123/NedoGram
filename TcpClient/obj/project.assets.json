@@ -208,14 +208,14 @@
           "build/netstandard2.0/NETStandard.Library.targets": {}
         }
       },
-      "ChatServer/1.0.0": {
+      "ChatCommon/1.0.0": {
         "type": "project",
-        "framework": ".NETCoreApp,Version=v2.2",
+        "framework": ".NETStandard,Version=v2.0",
         "compile": {
-          "bin/placeholder/ChatServer.dll": {}
+          "bin/placeholder/ChatCommon.dll": {}
         },
         "runtime": {
-          "bin/placeholder/ChatServer.dll": {}
+          "bin/placeholder/ChatCommon.dll": {}
         }
       }
     }
@@ -689,15 +689,15 @@
         "netstandard.library.nuspec"
       ]
     },
-    "ChatServer/1.0.0": {
+    "ChatCommon/1.0.0": {
       "type": "project",
-      "path": "../TcpServer/ChatServer.csproj",
-      "msbuildProject": "../TcpServer/ChatServer.csproj"
+      "path": "../ChatCommon/ChatCommon.csproj",
+      "msbuildProject": "../ChatCommon/ChatCommon.csproj"
     }
   },
   "projectFileDependencyGroups": {
     ".NETCoreApp,Version=v2.2": [
-      "ChatServer >= 1.0.0",
+      "ChatCommon >= 1.0.0",
       "Microsoft.NETCore.App >= 2.2.0"
     ]
   },
@@ -708,9 +708,9 @@
   "project": {
     "version": "1.0.0",
     "restore": {
-      "projectUniqueName": "D:\\WpfChat\\TcpClient\\ChatClient.csproj",
-      "projectName": "ChatClient",
-      "projectPath": "D:\\WpfChat\\TcpClient\\ChatClient.csproj",
+      "projectUniqueName": "D:\\WpfChat\\TcpClient\\ConsoleChatClient.csproj",
+      "projectName": "ConsoleChatClient",
+      "projectPath": "D:\\WpfChat\\TcpClient\\ConsoleChatClient.csproj",
       "packagesPath": "C:\\Users\\artem.kuchma\\.nuget\\packages\\",
       "outputPath": "D:\\WpfChat\\TcpClient\\obj\\",
       "projectStyle": "PackageReference",
@@ -731,8 +731,8 @@
       "frameworks": {
         "netcoreapp2.2": {
           "projectReferences": {
-            "D:\\WpfChat\\TcpServer\\ChatServer.csproj": {
-              "projectPath": "D:\\WpfChat\\TcpServer\\ChatServer.csproj"
+            "D:\\WpfChat\\ChatCommon\\ChatCommon.csproj": {
+              "projectPath": "D:\\WpfChat\\ChatCommon\\ChatCommon.csproj"
             }
           }
         }

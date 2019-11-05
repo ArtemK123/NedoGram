@@ -12,6 +12,7 @@ namespace ChatServer
     {
         private static TcpListener tcpListener;
         private readonly List<ClientInstance> clients = new List<ClientInstance>();
+        public Encoding Encoding { get; } = new UnicodeEncoding(false, true, true);
 
         public void Listen(int port)
         {
@@ -51,10 +52,17 @@ namespace ChatServer
 
         protected internal void BroadcastMessage(string message, ClientInstance sender)
         {
-            byte[] messageBuffer = Encoding.Unicode.GetBytes(message);
-            foreach (ClientInstance clientInstance in clients.Where(client => !client.Id.Equals(sender.Id)))
+            try
             {
-                clientInstance.SendMessage(messageBuffer);
+                byte[] messageBuffer = Encoding.GetBytes(message);
+                foreach (ClientInstance clientInstance in clients.Where(client => !client.Id.Equals(sender.Id)))
+                {
+                    clientInstance.SendMessage(messageBuffer);
+                }
+            }
+            catch (Exception exception)
+            {
+                Console.WriteLine(exception.Message);
             }
         }
 
