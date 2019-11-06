@@ -5,6 +5,7 @@ using System.Net;
 using System.Net.Sockets;
 using System.Text;
 using System.Threading;
+using ChatCommon;
 
 namespace ChatServer
 {
@@ -28,7 +29,7 @@ namespace ChatServer
                     
                     Console.WriteLine("New client connected");
 
-                    ClientInstance clientInstance = new ClientInstance(tcpClient, this);
+                    ClientInstance clientInstance = new ClientInstance(tcpClient, this, new Coding(new UnicodeEncoding(false, false, true)));
                     clients.Add(clientInstance);
                     Thread clientThread = new Thread(clientInstance.Process);
                     clientThread.Start();
@@ -45,19 +46,18 @@ namespace ChatServer
         {
             if (clientInstance != null)
             {
-                BroadcastMessage($"{clientInstance.UserName} left", clientInstance);
+                //BroadcastMessage($"{clientInstance.UserName} left", clientInstance);
                 clients.Remove(clientInstance);
             }
         }
 
-        protected internal void BroadcastMessage(string message, ClientInstance sender)
+        protected internal void BroadcastMessage(byte[] message, ClientInstance sender)
         {
             try
             {
-                byte[] messageBuffer = Encoding.GetBytes(message);
                 foreach (ClientInstance clientInstance in clients.Where(client => !client.Id.Equals(sender.Id)))
                 {
-                    clientInstance.SendMessage(messageBuffer);
+                    clientInstance.SendMessage(message);
                 }
             }
             catch (Exception exception)

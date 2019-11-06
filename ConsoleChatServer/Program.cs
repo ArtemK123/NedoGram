@@ -1,60 +1,27 @@
 ﻿using System;
-using System.Net;
-using System.Net.Sockets;
-using System.Text;
+using System.IO;
+using System.Security.Cryptography;
 
 namespace ConsoleChatTestServer
 {
     class Program
     {
-        const int port = 8888; // порт для прослушивания подключений
         static void Main(string[] args)
         {
-            TcpListener server = null;
-            TcpClient client = null;
-            NetworkStream stream = null;
-
-            try
+            using (var aesAlg = new AesManaged())
             {
-                IPAddress localAddr = IPAddress.Parse("127.0.0.1");
-                server = new TcpListener(localAddr, port);
-
-                // запуск слушателя
-                server.Start();
-
-                while (true)
+                aesAlg.GenerateKey();
+                aesAlg.GenerateIV();
+                using (var keyWriter = new StreamWriter("D:/WpfChat/key.txt"))
                 {
-                    Console.WriteLine("Ожидание подключений... ");
-
-                    // получаем входящее подключение
-                    client = server.AcceptTcpClient();
-                    Console.WriteLine("Подключен клиент. Выполнение запроса...");
-
-                    // получаем сетевой поток для чтения и записи
-                    stream = client.GetStream();
-
-                    // сообщение для отправки клиенту
-                    string response = "Successfully connected to the TCP server";
-                    // преобразуем сообщение в массив байтов
-                    byte[] data = Encoding.UTF8.GetBytes(response);
-
-                    // отправка сообщения
-                    stream.Write(data, 0, data.Length);
-                    Console.WriteLine("Sent response: {0}", response);
-
-                    // закрываем поток
-                    stream?.Close();
-                    // закрываем подключение
-                    client?.Close();
+                    Console.WriteLine("Used Key for Encryption: " + BitConverter.ToString(aesAlg.Key));
+                    keyWriter.WriteLine(BitConverter.ToString(aesAlg.Key));
                 }
-            }
-            catch (Exception e)
-            {
-                Console.WriteLine(e.Message);
-            }
-            finally
-            {
-                server?.Stop();
+                using (var IvWriter = new StreamWriter("D:/WpfChat/iv.txt"))
+                {
+                    Console.WriteLine("Used IV for Encryption: " + BitConverter.ToString(aesAlg.IV));
+                    IvWriter.WriteLine(BitConverter.ToString(aesAlg.IV));
+                }
             }
         }
     }

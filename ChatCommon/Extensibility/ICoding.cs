@@ -1,6 +1,6 @@
 ﻿namespace ChatCommon
 {
-    interface ICoding
+    public interface ICoding
     {
         string Decode(byte[] message);
 

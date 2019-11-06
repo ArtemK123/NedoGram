@@ -4,15 +4,15 @@ using ChatCommon.Extensibility;
 
 namespace ChatCommon
 {
-    public class AesManaged : IEncryption
+    public class AesEncryption : IEncryption
     {
-        private readonly byte[] key;
-        private readonly byte[] iv;
+        public readonly byte[] key;
+        public readonly byte[] iv;
 
-        public AesManaged(byte[] key, byte[] iv)
-        {
-            this.key = key;
-            this.iv = iv;
+        public AesEncryption(byte[] key = null, byte[] iv = null)
+        { 
+            this.key = key ?? GenerateKey();
+            this.iv = iv ?? GenerateIv();
         }
 
         public byte[] Encrypt(string plainText)
@@ -21,7 +21,7 @@ namespace ChatCommon
 
             // Create an AesManaged object
             // with the specified key and IV.
-            using (System.Security.Cryptography.AesManaged aesAlg = new System.Security.Cryptography.AesManaged())
+            using (var aesAlg = new AesManaged())
             {
                 aesAlg.Key = key;
                 aesAlg.IV = iv;
@@ -47,6 +47,11 @@ namespace ChatCommon
             // Return the encrypted bytes from the memory stream.
             return encrypted;
         }
+        public byte[] Encrypt(byte[] message, ICoding coding)
+        {
+            return Encrypt(coding.Decode(message));
+        }
+
 
         public string Decrypt(byte[] encryptedText)
         {
@@ -56,7 +61,7 @@ namespace ChatCommon
 
             // Create an AesManaged object
             // with the specified key and IV.
-            using (System.Security.Cryptography.AesManaged aesAlg = new System.Security.Cryptography.AesManaged())
+            using (var aesAlg = new AesManaged())
             {
                 aesAlg.Key = key;
                 aesAlg.IV = iv;
@@ -81,6 +86,29 @@ namespace ChatCommon
 
             }
             return plainText;
+        }
+
+        public byte[] DecryptInBytes(byte[] encryptedText, ICoding coding)
+        {
+            return coding.Encode(Decrypt(encryptedText));
+        }
+
+        public static byte[] GenerateKey()
+        {
+            using (var aesAlg = new AesManaged())
+            {
+                aesAlg.GenerateKey();
+                return aesAlg.Key;
+            }
+        }
+
+        public static byte[] GenerateIv()
+        {
+            using (var aesAlg = new AesManaged())
+            {
+                aesAlg.GenerateIV();
+                return aesAlg.IV;
+            }
         }
     }
 }

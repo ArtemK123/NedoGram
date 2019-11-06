@@ -8,3 +8,6 @@ D:\WpfChat\TcpServer\obj\Debug\netcoreapp2.2\ChatServer.AssemblyInfoInputs.cache
 D:\WpfChat\TcpServer\obj\Debug\netcoreapp2.2\ChatServer.AssemblyInfo.cs
 D:\WpfChat\TcpServer\obj\Debug\netcoreapp2.2\ChatServer.dll
 D:\WpfChat\TcpServer\obj\Debug\netcoreapp2.2\ChatServer.pdb
+D:\WpfChat\TcpServer\bin\Debug\netcoreapp2.2\ChatCommon.dll
+D:\WpfChat\TcpServer\bin\Debug\netcoreapp2.2\ChatCommon.pdb
+D:\WpfChat\TcpServer\obj\Debug\netcoreapp2.2\ChatServer.csproj.CopyComplete

@@ -8,15 +8,15 @@
     ".NETCoreApp,Version=v2.2": {
       "ConsoleChatClient/1.0.0": {
         "dependencies": {
-          "ChatServer": "1.0.0"
+          "ChatCommon": "1.0.0"
         },
         "runtime": {
           "ConsoleChatClient.dll": {}
         }
       },
-      "ChatServer/1.0.0": {
+      "ChatCommon/1.0.0": {
         "runtime": {
-          "ChatServer.dll": {}
+          "ChatCommon.dll": {}
         }
       }
     }
@@ -27,7 +27,7 @@
       "serviceable": false,
       "sha512": ""
     },
-    "ChatServer/1.0.0": {
+    "ChatCommon/1.0.0": {
       "type": "project",
       "serviceable": false,
       "sha512": ""

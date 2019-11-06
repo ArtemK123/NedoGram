@@ -3,11 +3,11 @@ D:\WpfChat\TcpClient\bin\Debug\netcoreapp2.2\ConsoleChatClient.runtimeconfig.jso
 D:\WpfChat\TcpClient\bin\Debug\netcoreapp2.2\ConsoleChatClient.runtimeconfig.dev.json
 D:\WpfChat\TcpClient\bin\Debug\netcoreapp2.2\ConsoleChatClient.dll
 D:\WpfChat\TcpClient\bin\Debug\netcoreapp2.2\ConsoleChatClient.pdb
-D:\WpfChat\TcpClient\bin\Debug\netcoreapp2.2\ChatServer.dll
-D:\WpfChat\TcpClient\bin\Debug\netcoreapp2.2\ChatServer.pdb
 D:\WpfChat\TcpClient\obj\Debug\netcoreapp2.2\ConsoleChatClient.csprojAssemblyReference.cache
 D:\WpfChat\TcpClient\obj\Debug\netcoreapp2.2\ConsoleChatClient.AssemblyInfoInputs.cache
 D:\WpfChat\TcpClient\obj\Debug\netcoreapp2.2\ConsoleChatClient.AssemblyInfo.cs
 D:\WpfChat\TcpClient\obj\Debug\netcoreapp2.2\ConsoleChatClient.csproj.CopyComplete
 D:\WpfChat\TcpClient\obj\Debug\netcoreapp2.2\ConsoleChatClient.dll
 D:\WpfChat\TcpClient\obj\Debug\netcoreapp2.2\ConsoleChatClient.pdb
+D:\WpfChat\TcpClient\bin\Debug\netcoreapp2.2\ChatCommon.dll
+D:\WpfChat\TcpClient\bin\Debug\netcoreapp2.2\ChatCommon.pdb

@@ -1,0 +1,8 @@
+D:\WpfChat\ChatCommon\bin\Debug\netstandard2.0\ChatCommon.deps.json
+D:\WpfChat\ChatCommon\bin\Debug\netstandard2.0\ChatCommon.dll
+D:\WpfChat\ChatCommon\bin\Debug\netstandard2.0\ChatCommon.pdb
+D:\WpfChat\ChatCommon\obj\Debug\netstandard2.0\ChatCommon.csprojAssemblyReference.cache
+D:\WpfChat\ChatCommon\obj\Debug\netstandard2.0\ChatCommon.AssemblyInfoInputs.cache
+D:\WpfChat\ChatCommon\obj\Debug\netstandard2.0\ChatCommon.AssemblyInfo.cs
+D:\WpfChat\ChatCommon\obj\Debug\netstandard2.0\ChatCommon.dll
+D:\WpfChat\ChatCommon\obj\Debug\netstandard2.0\ChatCommon.pdb

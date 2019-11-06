@@ -1,171 +1,38 @@
 ﻿using System;
-using System.IO;
-using System.Threading;
-using System.Net.Sockets;
-using System.Security.Cryptography;
 using System.Text;
+using ChatCommon;
 
-namespace ChatClient
+namespace ConsoleChatClient
 {
     class Program
     {
-        private const string Host = "127.0.0.1";
-        private const int ServerPort = 8888;
-
-        static string userName;
-        static TcpClient tcpClient;
-        static NetworkStream stream;
-        static readonly Encoding encoding = new UnicodeEncoding(false, true, true);
-
         static void Main(string[] args)
         {
-            Console.Write("Welcome to chat. Please, enter your name: ");
-            userName = Console.ReadLine();
-            tcpClient = new TcpClient();
-            try
-            {
-                tcpClient.Connect(Host, ServerPort);
-                stream = tcpClient.GetStream();
+            Console.WriteLine("Write your name");
+            string userName = Console.ReadLine();
+            IChatClient client = new ChatClient(
+                "127.0.0.1",
+                8888,
+                userName,
+                new AesEncryption(
+                    GetBytes("61-84-54-FA-46-F0-2E-FC-7A-AE-B6-6A-3E-A5-A3-67-4C-FB-6C-08-2F-55-AD-85-C2-50-33-FB-52-AB-EC-D0"),
+                    GetBytes("B6-B9-EC-D6-C6-A0-EC-A8-1D-C7-B7-61-73-E0-A8-68")),
+                new Coding(new UnicodeEncoding(false, false, true)));
 
-                string message = userName;
-                byte[] data = encoding.GetBytes(message);
-                stream.Write(data, 0, data.Length);
-
-                Thread receiveThread = new Thread(ReceiveMessage);
-                receiveThread.Start();
-                Console.WriteLine($"Hi, {userName}");
-                SendMessage();
-            }
-            catch (Exception ex)
-            {
-                Console.WriteLine(ex.Message);
-            }
-            finally
-            {
-                Disconnect();
-            }
+            client.Listen();
         }
 
-        static void SendMessage()
+        static byte[] GetBytes(string dashSeparetedKey)
         {
-            Console.WriteLine("Write your message: ");
+            string[] symbols = dashSeparetedKey.Split('-');
 
-            while (true)
+            byte[] array = new byte[symbols.Length];
+            for (int i = 0; i < symbols.Length; i++)
             {
-                string message = Console.ReadLine();
-                byte[] data = encoding.GetBytes(message);
-                AesManaged aesManaged = new AesManaged();
-                byte[] encryptedData = EncryptStringToBytes_Aes(data, aesManaged.Key, aesManaged.IV);
-                aesManaged.Dispose();
-                stream.Write(encryptedData, 0, encryptedData.Length);
-            }
-        }
-
-        static void ReceiveMessage()
-        {
-            while (true)
-            {
-                try
-                {
-                    byte[] data = new byte[64]; 
-                    StringBuilder messageBuilder = new StringBuilder();
-                    int bytes = 0;
-                    do
-                    {
-                        bytes = stream.Read(data, 0, data.Length);
-                        messageBuilder.Append(encoding.GetString(data, 0, bytes));
-                    } while (stream.DataAvailable);
-
-
-                    AesManaged aesManaged = new AesManaged();
-                    string decryptedMessage = DecryptStringFromBytes_Aes(encoding.GetBytes(messageBuilder.ToString()), aesManaged.Key, aesManaged.IV);
-
-                    Console.WriteLine(decryptedMessage); 
-                }
-                catch
-                {
-                    Console.WriteLine("Connection lost!");
-                    Console.ReadLine();
-                    Disconnect();
-                }
-            }
-        }
-
-        static byte[] EncryptStringToBytes_Aes(byte[] plainText, byte[] key, byte[] iv)
-        {
-            byte[] encrypted;
-
-            // Create an AesManaged object
-            // with the specified key and IV.
-            using (AesManaged aesAlg = new AesManaged())
-            {
-                aesAlg.Key = key;
-                aesAlg.IV = iv;
-
-                // Create an encryptor to perform the stream transform.
-                ICryptoTransform encryptor = aesAlg.CreateEncryptor(aesAlg.Key, aesAlg.IV);
-
-                // Create the streams used for encryption.
-                using (MemoryStream msEncrypt = new MemoryStream())
-                {
-                    using (CryptoStream csEncrypt = new CryptoStream(msEncrypt, encryptor, CryptoStreamMode.Write))
-                    {
-                        using (StreamWriter swEncrypt = new StreamWriter(csEncrypt))
-                        {
-                            //Write all data to the stream.
-                            swEncrypt.Write(plainText);
-                        }
-                        encrypted = msEncrypt.ToArray();
-                    }
-                }
+                array[i] = Convert.ToByte(symbols[i], 16);
             }
 
-            // Return the encrypted bytes from the memory stream.
-            return encrypted;
-        }
-
-        static string DecryptStringFromBytes_Aes(byte[] cipherText, byte[] Key, byte[] IV)
-        {
-            // Declare the string used to hold
-            // the decrypted text.
-            string plaintext = null;
-
-            // Create an AesManaged object
-            // with the specified key and IV.
-            using (AesManaged aesAlg = new AesManaged())
-            {
-                aesAlg.Key = Key;
-                aesAlg.IV = IV;
-
-                // Create a decryptor to perform the stream transform.
-                ICryptoTransform decryptor = aesAlg.CreateDecryptor(aesAlg.Key, aesAlg.IV);
-
-                // Create the streams used for decryption.
-                using (MemoryStream msDecrypt = new MemoryStream(cipherText))
-                {
-                    using (CryptoStream csDecrypt = new CryptoStream(msDecrypt, decryptor, CryptoStreamMode.Read))
-                    {
-                        using (StreamReader srDecrypt = new StreamReader(csDecrypt))
-                        {
-
-                            // Read the decrypted bytes from the decrypting stream
-                            // and place them in a string.
-                            plaintext = srDecrypt.ReadToEnd();
-                        }
-                    }
-                }
-
-            }
-
-            return plaintext;
-
-        }
-
-        static void Disconnect()
-        {
-            stream?.Close();
-            tcpClient?.Close();
-            Environment.Exit(0);
+            return array;
         }
     }
 };
