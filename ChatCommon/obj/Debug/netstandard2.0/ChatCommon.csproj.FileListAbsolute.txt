@@ -6,3 +6,12 @@ D:\WpfChat\ChatCommon\obj\Debug\netstandard2.0\ChatCommon.AssemblyInfoInputs.cac
 D:\WpfChat\ChatCommon\obj\Debug\netstandard2.0\ChatCommon.AssemblyInfo.cs
 D:\WpfChat\ChatCommon\obj\Debug\netstandard2.0\ChatCommon.dll
 D:\WpfChat\ChatCommon\obj\Debug\netstandard2.0\ChatCommon.pdb
+E:\Developing\Sigma\NedoGram\ChatCommon\bin\Debug\netstandard2.0\ChatCommon.deps.json
+E:\Developing\Sigma\NedoGram\ChatCommon\bin\Debug\netstandard2.0\ChatCommon.dll
+E:\Developing\Sigma\NedoGram\ChatCommon\bin\Debug\netstandard2.0\ChatCommon.pdb
+E:\Developing\Sigma\NedoGram\ChatCommon\obj\Debug\netstandard2.0\ChatCommon.csprojAssemblyReference.cache
+E:\Developing\Sigma\NedoGram\ChatCommon\obj\Debug\netstandard2.0\ChatCommon.csproj.CoreCompileInputs.cache
+E:\Developing\Sigma\NedoGram\ChatCommon\obj\Debug\netstandard2.0\ChatCommon.AssemblyInfoInputs.cache
+E:\Developing\Sigma\NedoGram\ChatCommon\obj\Debug\netstandard2.0\ChatCommon.AssemblyInfo.cs
+E:\Developing\Sigma\NedoGram\ChatCommon\obj\Debug\netstandard2.0\ChatCommon.dll
+E:\Developing\Sigma\NedoGram\ChatCommon\obj\Debug\netstandard2.0\ChatCommon.pdb
