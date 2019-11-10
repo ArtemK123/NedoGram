@@ -1,22 +1,19 @@
 ﻿using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Net.Sockets;
 using ChatCommon;
+using ChatCommon.Extensibility;
 
 namespace ChatServer
 {
     public class ClientInstance
     {
         protected internal string Id { get; }
-        protected internal NetworkStream Stream { get; private set; }
         public string UserName { get; private set; } = "Undefined UserName";
 
         public readonly ICoding Coding;
 
-        readonly TcpClient client;
-        readonly ServerInstance server; 
-        public ClientInstance(TcpClient tcpClient, ServerInstance serverInstance, ICoding coding)
+        private readonly ITcpWrapper client;
+        private readonly ServerInstance server; 
+        public ClientInstance(ITcpWrapper tcpClient, ServerInstance serverInstance, ICoding coding)
         {
             Id = Guid.NewGuid().ToString();
             client = tcpClient;
@@ -27,8 +24,7 @@ namespace ChatServer
         {
             try
             {
-                Stream = client.GetStream();
-                byte[] message = GetMessage();
+                byte[] message = client.GetMessage();
                 UserName = Coding.Decode(message);
 
                 Console.WriteLine(UserName + " connected");
@@ -37,7 +33,7 @@ namespace ChatServer
                 {
                     try
                     {
-                        message = GetMessage();
+                        message = client.GetMessage();
                         server.BroadcastMessage(message, this);
                     }
                     catch(Exception e)
@@ -58,29 +54,14 @@ namespace ChatServer
             }
         }
 
-        public void SendMessage(byte[] messageBuffer)
+        public void SendMessage(byte[] message)
         {
-            Stream.Write(messageBuffer, 0 , messageBuffer.Length);
-        }
-
-        private byte[] GetMessage()
-        {
-            byte[] buffer = new byte[64];
-            List<byte> message = new List<byte>();
-            int bytes = 0;
-            do
-            {
-                bytes = Stream.Read(buffer, 0, buffer.Length);
-                message.AddRange(buffer);
-            } while (Stream.DataAvailable);
-
-            return message.Where((byte b) => b != 0).ToArray();
+            client.Send(message);
         }
 
         protected internal void Close()
         {
-            Stream?.Close();
-            client?.Close();
+            client?.Dispose();
         }
     }
 }

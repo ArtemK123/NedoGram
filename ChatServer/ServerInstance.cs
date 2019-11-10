@@ -29,7 +29,11 @@ namespace ChatServer
                     
                     Console.WriteLine("New client connected");
 
-                    ClientInstance clientInstance = new ClientInstance(tcpClient, this, new Coding(new UnicodeEncoding(false, false, true)));
+                    ClientInstance clientInstance = new ClientInstance(
+                        new TcpClientWrapper(tcpClient),
+                        this,
+                        new Coding(new UnicodeEncoding(false, false, true)));
+
                     clients.Add(clientInstance);
                     Thread clientThread = new Thread(clientInstance.Process);
                     clientThread.Start();

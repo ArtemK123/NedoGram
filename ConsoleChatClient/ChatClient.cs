@@ -1,8 +1,4 @@
 ﻿using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Net.Sockets;
-using System.Text;
 using System.Threading;
 using ChatCommon;
 using ChatCommon.Extensibility;
@@ -11,37 +7,27 @@ namespace ConsoleChatClient
 {
     internal class ChatClient : IChatClient, IDisposable
     {
-        private const int bufferSize = 64;
-        public readonly string ServerIp;
-        public readonly int ServerPort;
         public readonly string UserName;
 
-        private readonly TcpClient tcpClient;
         private readonly IEncryption encryption;
         private readonly ICoding coding;
+        private readonly ITcpWrapper tcpClient;
 
-        private NetworkStream stream = null;
-
-        public ChatClient(string serverIp, int serverPort, string userName, IEncryption encryption, ICoding coding)
+        public ChatClient(ITcpWrapper tcpClient, string userName, IEncryption encryption, ICoding coding)
         {
-            ServerIp = serverIp;
-            ServerPort = serverPort;
+            this.tcpClient = tcpClient;
             UserName = userName;
             this.encryption = encryption;
             this.coding = coding;
-            tcpClient = new TcpClient();
         }
 
         public void Listen()
         {
             try
             {
-                tcpClient.Connect(ServerIp, ServerPort);
-                stream = tcpClient.GetStream();
-
                 string message = UserName;
                 byte[] data = coding.Encode(UserName);
-                stream.Write(data, 0, data.Length);
+                tcpClient.Send(data);
 
                 Thread receiveThread = new Thread(ReceiveMessage);
                 receiveThread.Start();
@@ -51,16 +37,17 @@ namespace ConsoleChatClient
             catch (Exception ex)
             {
                 Console.WriteLine(ex.Message);
+                Console.ReadKey();
             }
             finally
             {
                 Dispose();
             }
         }
+
         public void Dispose()
         {
-            stream?.Close();
-            tcpClient?.Close();
+            tcpClient?.Dispose();
             Environment.Exit(0);
         }
 
@@ -77,7 +64,7 @@ namespace ConsoleChatClient
                 byte[] encryptedData = encryption.Encrypt(message);
                 Console.WriteLine($"Encrypted and derypted: {encryption.Decrypt(encryptedData)}");
 
-                stream.Write(encryptedData, 0, encryptedData.Length);
+                tcpClient.Send(encryptedData);
             }
         }
 
@@ -87,16 +74,9 @@ namespace ConsoleChatClient
             {
                 try
                 {
-                    byte[] buffer = new byte[bufferSize];
-                    List<byte> encryptedMessage = new List<byte>();
-                    int bytes = 0;
-                    do
-                    {
-                        bytes = stream.Read(buffer, 0, buffer.Length);
-                        encryptedMessage.AddRange(buffer);
-                    } while (stream.DataAvailable);
+                    byte[] rawMessage = tcpClient.GetMessage();
 
-                    string message = encryption.Decrypt(encryptedMessage.Where((byte b) => b != 0).ToArray());
+                    string message = encryption.Decrypt(rawMessage);
 
                     Console.WriteLine(message.Trim());
                 }
