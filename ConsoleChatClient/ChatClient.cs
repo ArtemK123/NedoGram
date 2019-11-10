@@ -1,4 +1,6 @@
 ﻿using System;
+using System.Collections.Generic;
+using System.Text.Json;
 using System.Threading;
 using ChatCommon;
 using ChatCommon.Extensibility;
@@ -25,8 +27,8 @@ namespace ConsoleChatClient
         {
             try
             {
-                string message = UserName;
                 byte[] data = coding.Encode(UserName);
+
                 tcpClient.Send(data);
 
                 Thread receiveThread = new Thread(ReceiveMessage);
@@ -59,9 +61,16 @@ namespace ConsoleChatClient
             {
                 string input = Console.ReadLine();
 
-                string message = $"{UserName}: {input}";
+                var headers = new Dictionary<string, string>();
+                headers.Add("action", "connect");
+                headers.Add("content-type", "json/aes");
+                headers.Add("sender", UserName);
 
-                byte[] encryptedData = encryption.Encrypt(message);
+                Message messageObj = new Message(headers, input);
+
+                string messageInJson = JsonSerializer.Serialize(messageObj);
+
+                byte[] encryptedData = encryption.Encrypt(messageInJson);
                 Console.WriteLine($"Encrypted and derypted: {encryption.Decrypt(encryptedData)}");
 
                 tcpClient.Send(encryptedData);
@@ -76,9 +85,11 @@ namespace ConsoleChatClient
                 {
                     byte[] rawMessage = tcpClient.GetMessage();
 
-                    string message = encryption.Decrypt(rawMessage);
+                    string messageInJson = encryption.Decrypt(rawMessage);
 
-                    Console.WriteLine(message.Trim());
+                    Message message = JsonSerializer.Deserialize<Message>(messageInJson);
+
+                    Console.WriteLine($"{message.Headers["sender"]}: {message.Body}");
                 }
                 catch(Exception exception)
                 {
