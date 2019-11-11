@@ -1,6 +1,7 @@
 ﻿using System;
 using System.Collections.Generic;
 using System.Security.Cryptography;
+using System.Text;
 using System.Text.Json;
 using System.Threading;
 using ChatCommon;
@@ -27,7 +28,7 @@ namespace ConsoleChatClient
             UserName = userName;
             this.encryption = encryption;
             this.coding = coding;
-            rsa = new RSACryptoServiceProvider();
+            rsa = new RSACryptoServiceProvider(2048);
         }
 
         public void Listen()
@@ -39,7 +40,18 @@ namespace ConsoleChatClient
                 int temp;
                 rsa.ImportRSAPublicKey(serverPublicKey, out temp);
 
-                byte[] data = rsa.Encrypt(coding.Encode(UserName), true);
+                Message connectMessage = new Message(new Dictionary<string, string>(), "");
+                connectMessage.Headers.Add("action", "connect");
+                connectMessage.Headers.Add("content-type", "empty");
+                connectMessage.Headers.Add("user", UserName);
+                //var md5 = new MD5CryptoServiceProvider();
+                //string hash = Convert.ToBase64String(md5.ComputeHash(coding.Encode("silly password")));
+                //connectMessage.Headers.Add("password", hash);
+                //md5.Dispose();
+
+                byte[] messageBytes = coding.Encode(JsonSerializer.Serialize(connectMessage));
+
+                byte[] data = rsa.Encrypt(messageBytes, false);
 
                 tcpClient.Send(data);
 

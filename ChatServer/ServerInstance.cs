@@ -28,7 +28,7 @@ namespace ChatServer
         {
             try
             {
-                rsa = new RSACryptoServiceProvider();
+                rsa = new RSACryptoServiceProvider(2048);
                 keyRepository.AddOrUpdate("server", rsa.ExportRSAPublicKey());
 
                 tcpListener = new TcpListener(IPAddress.Any, port);

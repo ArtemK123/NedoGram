@@ -1,7 +1,6 @@
 ﻿using System;
 using System.Text;
 using ChatCommon;
-using ChatCommon.Encryption;
 
 namespace ConsoleChatClient
 {

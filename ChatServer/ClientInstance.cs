@@ -1,5 +1,6 @@
 ﻿using System;
 using System.Text;
+using System.Text.Json;
 using ChatCommon;
 using ChatCommon.Extensibility;
 
@@ -25,20 +26,24 @@ namespace ChatServer
         {
             try
             {
-                byte[] rawMessage = client.GetMessage();
+                byte[] rawConnectionMessage = client.GetMessage();
 
-                byte[] decryptedMessage =  server.rsa.Decrypt(rawMessage, true);
+                byte[] decryptedConnectionMessage =  server.rsa.Decrypt(rawConnectionMessage, false);
 
-                UserName = Coding.Decode(decryptedMessage);
+                string connectionMessageInJson = Coding.Decode(decryptedConnectionMessage);
 
-                Console.WriteLine(UserName + " connected");
+                Message connectonMessage = JsonSerializer.Deserialize<Message>(connectionMessageInJson);
+
+                UserName = connectonMessage.Headers["user"];
+
+                Console.WriteLine($"Received message: {connectionMessageInJson}");
 
                 while (true)
                 {
                     try
                     {
-                        byte[] message = client.GetMessage();
-                        server.BroadcastMessage(message, this);
+                        byte[] rawMessage = client.GetMessage();
+                        server.BroadcastMessage(rawMessage, this);
                     }
                     catch(Exception e)
                     {
