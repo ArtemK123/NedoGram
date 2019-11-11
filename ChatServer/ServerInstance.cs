@@ -3,9 +3,11 @@ using System.Collections.Generic;
 using System.Linq;
 using System.Net;
 using System.Net.Sockets;
+using System.Security.Cryptography;
 using System.Text;
 using System.Threading;
 using ChatCommon;
+using ChatCommon.Extensibility;
 
 namespace ChatServer
 {
@@ -13,12 +15,22 @@ namespace ChatServer
     {
         private static TcpListener tcpListener;
         private readonly List<ClientInstance> clients = new List<ClientInstance>();
+        private readonly IKeyRepository keyRepository;
+        internal RSACryptoServiceProvider rsa;
         public Encoding Encoding { get; } = new UnicodeEncoding(false, true, true);
+
+        public ServerInstance(IKeyRepository keyRepository)
+        {
+            this.keyRepository = keyRepository;
+        }
 
         public void Listen(int port)
         {
             try
             {
+                rsa = new RSACryptoServiceProvider();
+                keyRepository.AddOrUpdate("server", rsa.ExportRSAPublicKey());
+
                 tcpListener = new TcpListener(IPAddress.Any, port);
                 tcpListener.Start();
                 Console.WriteLine($"Server running on the port {port}. Waiting for new clients...");
@@ -26,11 +38,12 @@ namespace ChatServer
                 while (true)
                 {
                     TcpClient tcpClient = tcpListener.AcceptTcpClient();
-                    
-                    Console.WriteLine("New client connected");
+
+                    var tcpClientWrapper = new TcpClientWrapper(tcpClient);
+                    tcpClientWrapper.Send(rsa.ExportRSAPublicKey());
 
                     ClientInstance clientInstance = new ClientInstance(
-                        new TcpClientWrapper(tcpClient),
+                        tcpClientWrapper,
                         this,
                         new Coding(new UnicodeEncoding(false, false, true)));
 
@@ -72,7 +85,8 @@ namespace ChatServer
 
         protected internal void Disconnect()
         {
-            tcpListener.Stop();
+            tcpListener?.Stop();
+            rsa?.Dispose();
 
             foreach (ClientInstance client in clients)
             {

@@ -1,4 +1,5 @@
 ﻿using System;
+using System.Text;
 using ChatCommon;
 using ChatCommon.Extensibility;
 
@@ -24,8 +25,11 @@ namespace ChatServer
         {
             try
             {
-                byte[] message = client.GetMessage();
-                UserName = Coding.Decode(message);
+                byte[] rawMessage = client.GetMessage();
+
+                byte[] decryptedMessage =  server.rsa.Decrypt(rawMessage, true);
+
+                UserName = Coding.Decode(decryptedMessage);
 
                 Console.WriteLine(UserName + " connected");
 
@@ -33,7 +37,7 @@ namespace ChatServer
                 {
                     try
                     {
-                        message = client.GetMessage();
+                        byte[] message = client.GetMessage();
                         server.BroadcastMessage(message, this);
                     }
                     catch(Exception e)

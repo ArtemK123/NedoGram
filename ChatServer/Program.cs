@@ -1,5 +1,6 @@
 ﻿using System;
 using System.Threading;
+using ChatCommon.Encryption;
 
 namespace ChatServer
 {
@@ -14,7 +15,7 @@ namespace ChatServer
             {
                 try
                 {
-                    server = new ServerInstance();
+                    server = new ServerInstance(KeyRepositorySingleton.GetInstance());
                     listenThread = new Thread(() => server.Listen(8888));
                     listenThread.Start();
                 }

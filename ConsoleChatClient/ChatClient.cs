@@ -1,5 +1,6 @@
 ﻿using System;
 using System.Collections.Generic;
+using System.Security.Cryptography;
 using System.Text.Json;
 using System.Threading;
 using ChatCommon;
@@ -14,20 +15,31 @@ namespace ConsoleChatClient
         private readonly IEncryption encryption;
         private readonly ICoding coding;
         private readonly ITcpWrapper tcpClient;
+        private readonly RSACryptoServiceProvider rsa;
 
-        public ChatClient(ITcpWrapper tcpClient, string userName, IEncryption encryption, ICoding coding)
+        public ChatClient(
+            ITcpWrapper tcpClient,
+            string userName,
+            IEncryption encryption,
+            ICoding coding)
         {
             this.tcpClient = tcpClient;
             UserName = userName;
             this.encryption = encryption;
             this.coding = coding;
+            rsa = new RSACryptoServiceProvider();
         }
 
         public void Listen()
         {
             try
             {
-                byte[] data = coding.Encode(UserName);
+                byte[] serverPublicKey = tcpClient.GetMessage();
+
+                int temp;
+                rsa.ImportRSAPublicKey(serverPublicKey, out temp);
+
+                byte[] data = rsa.Encrypt(coding.Encode(UserName), true);
 
                 tcpClient.Send(data);
 
@@ -50,6 +62,7 @@ namespace ConsoleChatClient
         public void Dispose()
         {
             tcpClient?.Dispose();
+            rsa?.Dispose();
             Environment.Exit(0);
         }
 
