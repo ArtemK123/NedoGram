@@ -10,11 +10,8 @@ namespace ConsoleChatClient
         {
             try
             {
-                Console.WriteLine("Write your name");
-                string userName = Console.ReadLine();
                 IChatClient client = new ChatClient(
                     new TcpClientWrapper("127.0.0.1", 8888),
-                    userName,
                     new AesEncryption(
                         GetBytes(
                             "61-84-54-FA-46-F0-2E-FC-7A-AE-B6-6A-3E-A5-A3-67-4C-FB-6C-08-2F-55-AD-85-C2-50-33-FB-52-AB-EC-D0"),

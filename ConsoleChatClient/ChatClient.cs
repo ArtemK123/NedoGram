@@ -1,62 +1,72 @@
 ﻿using System;
 using System.Collections.Generic;
 using System.Security.Cryptography;
-using System.Text;
 using System.Text.Json;
 using System.Threading;
 using ChatCommon;
 using ChatCommon.Extensibility;
+using ConsoleChatClient.Domain;
+using ConsoleChatClient.Domain.Actions;
 
 namespace ConsoleChatClient
 {
     internal class ChatClient : IChatClient, IDisposable
     {
-        public readonly string UserName;
+        public string UserName = "Undefined username";
 
         private readonly IEncryption encryption;
         private readonly ICoding coding;
         private readonly ITcpWrapper tcpClient;
         private readonly RSACryptoServiceProvider rsa;
+        private byte[] serverPublicKey;
+        private byte[] myPublicKey;
+        private byte[] myPrivateKey;
 
         public ChatClient(
             ITcpWrapper tcpClient,
-            string userName,
             IEncryption encryption,
             ICoding coding)
         {
             this.tcpClient = tcpClient;
-            UserName = userName;
             this.encryption = encryption;
             this.coding = coding;
             rsa = new RSACryptoServiceProvider(2048);
+            myPublicKey = rsa.ExportRSAPublicKey();
+            myPrivateKey = rsa.ExportRSAPrivateKey();
         }
 
         public void Listen()
         {
             try
             {
-                byte[] serverPublicKey = tcpClient.GetMessage();
+                // read server credentials
 
-                int temp;
-                rsa.ImportRSAPublicKey(serverPublicKey, out temp);
+                ReadServerPublicKey();
 
-                Message connectMessage = new Message(new Dictionary<string, string>(), "");
-                connectMessage.Headers.Add("action", "connect");
-                connectMessage.Headers.Add("content-type", "empty");
-                connectMessage.Headers.Add("user", UserName);
-                //var md5 = new MD5CryptoServiceProvider();
-                //string hash = Convert.ToBase64String(md5.ComputeHash(coding.Encode("silly password")));
-                //connectMessage.Headers.Add("password", hash);
-                //md5.Dispose();
+                // try to login until successful
 
-                byte[] messageBytes = coding.Encode(JsonSerializer.Serialize(connectMessage));
+                bool successfulLogin = false;
 
-                byte[] data = rsa.Encrypt(messageBytes, false);
+                do
+                {
+                    LoginMenuAction action = GetLoginAction();
 
-                tcpClient.Send(data);
+                    Dictionary<LoginMenuAction, Func<bool>> loginHandlers = new Dictionary<LoginMenuAction, Func<bool>>();
+                    loginHandlers.Add(LoginMenuAction.Login, this.Login);
+                    loginHandlers.Add(LoginMenuAction.Register, this.Register);
+                    loginHandlers.Add(LoginMenuAction.Exit, this.Exit);
 
+                    successfulLogin = loginHandlers[action]();
+                } while (!successfulLogin);
+
+                // Open main menu and message receiving in different threads
+                
                 Thread receiveThread = new Thread(ReceiveMessage);
                 receiveThread.Start();
+
+
+                // Get menu action
+
                 Console.WriteLine($"Hi, {UserName}");
                 SendMessage();
             }
@@ -70,6 +80,93 @@ namespace ConsoleChatClient
                 Dispose();
             }
         }
+
+        //private void ConnectToServer()
+        //{
+        //    LoginMenuAction action = GetLoginAction();
+
+        //    Dictionary<LoginMenuAction, Func<bool>> loginHandlers = new Dictionary<LoginMenuAction, Func<bool>>();
+        //    loginHandlers.Add(LoginMenuAction.Login, this.Login);
+        //    loginHandlers.Add(LoginMenuAction.Register, this.Register);
+        //    loginHandlers.Add(LoginMenuAction.Exit, this.Exit);
+
+        //    loginHandlers[action]();
+        //}
+
+        private void ReadServerPublicKey()
+        {
+            byte[] serverPublicKey = tcpClient.GetMessage();
+            if (ImportPublicKey(serverPublicKey) > 0)
+            {
+                this.serverPublicKey = serverPublicKey;
+            }
+        }
+
+        private int ImportPublicKey(byte[] key)
+        {
+            int bytesParsed;
+            rsa.ImportRSAPublicKey(key, out bytesParsed);
+            return bytesParsed;
+        }
+
+        private LoginMenuAction GetLoginAction()
+        {
+            Console.WriteLine(ConstantsProvider.LoginMenuItems);
+            while (true)
+            {
+                string input = Console.ReadLine();
+                switch (input)
+                {
+                    case "1":
+                    {
+                        return LoginMenuAction.Login;
+                    }
+                    case "2":
+                    {
+                        return LoginMenuAction.Register;
+                    }
+                    case "0":
+                    {
+                        return LoginMenuAction.Exit;
+                    }
+                }
+            }
+        }
+
+        private bool Login()
+        {
+            Console.WriteLine("Write your username");
+            UserName = Console.ReadLine();
+
+            Message connectMessage = new Message(new Dictionary<string, string>(), "");
+            connectMessage.Headers.Add("action", "login");
+            connectMessage.Headers.Add("content-type", "empty");
+            connectMessage.Headers.Add("user", UserName);
+            //var md5 = new MD5CryptoServiceProvider();
+            //string hash = Convert.ToBase64String(md5.ComputeHash(coding.Encode("silly password")));
+            //connectMessage.Headers.Add("password", hash);
+            //md5.Dispose();
+
+            byte[] messageBytes = coding.Encode(JsonSerializer.Serialize(connectMessage));
+
+            byte[] data = rsa.Encrypt(messageBytes, false);
+
+            tcpClient.Send(data);
+
+            return true;
+        }
+
+        private bool Register()
+        {
+            return true;
+        }
+
+        private bool Exit()
+        {
+            Dispose();
+            return true;
+        }
+
 
         public void Dispose()
         {

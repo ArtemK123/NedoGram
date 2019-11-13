@@ -7,7 +7,7 @@ using System.Security.Cryptography;
 using System.Text;
 using System.Threading;
 using ChatCommon;
-using ChatCommon.Extensibility;
+using ChatServer.Extensibility;
 
 namespace ChatServer
 {
@@ -15,13 +15,11 @@ namespace ChatServer
     {
         private static TcpListener tcpListener;
         private readonly List<ClientInstance> clients = new List<ClientInstance>();
-        private readonly IKeyRepository keyRepository;
         internal RSACryptoServiceProvider rsa;
         public Encoding Encoding { get; } = new UnicodeEncoding(false, true, true);
 
-        public ServerInstance(IKeyRepository keyRepository)
+        internal ServerInstance()
         {
-            this.keyRepository = keyRepository;
         }
 
         public void Listen(int port)
@@ -29,7 +27,6 @@ namespace ChatServer
             try
             {
                 rsa = new RSACryptoServiceProvider(2048);
-                keyRepository.AddOrUpdate("server", rsa.ExportRSAPublicKey());
 
                 tcpListener = new TcpListener(IPAddress.Any, port);
                 tcpListener.Start();
@@ -40,7 +37,6 @@ namespace ChatServer
                     TcpClient tcpClient = tcpListener.AcceptTcpClient();
 
                     var tcpClientWrapper = new TcpClientWrapper(tcpClient);
-                    tcpClientWrapper.Send(rsa.ExportRSAPublicKey());
 
                     ClientInstance clientInstance = new ClientInstance(
                         tcpClientWrapper,
