@@ -2,113 +2,87 @@
 using System.Security.Cryptography;
 using ChatCommon.Extensibility;
 
-namespace ChatCommon
+namespace ChatCommon.Encryption
 {
     public class AesEncryption : IEncryption
     {
-        public readonly byte[] key;
-        public readonly byte[] iv;
+        private readonly AesManaged aesNative;
 
         public AesEncryption(byte[] key = null, byte[] iv = null)
-        { 
-            this.key = key ?? GenerateKey();
-            this.iv = iv ?? GenerateIv();
-        }
-
-        public byte[] Encrypt(string plainText)
         {
-            byte[] encrypted;
-
-            // Create an AesManaged object
-            // with the specified key and IV.
-            using (var aesAlg = new AesManaged())
+            aesNative = new AesManaged();
+            if (key != null)
             {
-                aesAlg.Key = key;
-                aesAlg.IV = iv;
-
-                // Create an encryptor to perform the stream transform.
-                ICryptoTransform encryptor = aesAlg.CreateEncryptor(aesAlg.Key, aesAlg.IV);
-
-                // Create the streams used for encryption.
-                using (MemoryStream msEncrypt = new MemoryStream())
-                {
-                    using (CryptoStream csEncrypt = new CryptoStream(msEncrypt, encryptor, CryptoStreamMode.Write))
-                    {
-                        using (StreamWriter swEncrypt = new StreamWriter(csEncrypt))
-                        {
-                            //Write all data to the stream.
-                            swEncrypt.Write(plainText);
-                        }
-                        encrypted = msEncrypt.ToArray();
-                    }
-                }
+                aesNative.Key = key;
             }
 
-            // Return the encrypted bytes from the memory stream.
-            return encrypted;
-        }
-        public byte[] Encrypt(byte[] message, ICoding coding)
-        {
-            return Encrypt(coding.Decode(message));
+            if (iv != null)
+            {
+                aesNative.IV = iv;
+            }
         }
 
-
-        public string Decrypt(byte[] encryptedText)
+        public byte[] Encrypt(byte[] plainTextBytes)
         {
-            // Declare the string used to hold
-            // the decrypted text.
-            string plainText = null;
+            byte[] encrypted = null;
 
             // Create an AesManaged object
             // with the specified key and IV.
-            using (var aesAlg = new AesManaged())
-            {
-                aesAlg.Key = key;
-                aesAlg.IV = iv;
+        
+            // Create an encryptor to perform the stream transform.
+            ICryptoTransform encryptor = aesNative.CreateEncryptor(aesNative.Key, aesNative.IV);
 
+            // Create the streams used for encryption.
+            using (MemoryStream msEncrypt = new MemoryStream())
+            {
+                using (CryptoStream csEncrypt = new CryptoStream(msEncrypt, encryptor, CryptoStreamMode.Write))
+                {
+                    csEncrypt.Write(plainTextBytes);
+                }
+                // Return the encrypted bytes from the memory stream.
+
+                encrypted = msEncrypt.ToArray();
+            }
+
+            return encrypted;
+        }
+
+        public byte[] Decrypt(byte[] encryptedText)
+        {
+            // Declare the byte[] used to hold
+            // the decrypted text.
+            byte[] decrypted = null;
+
+            // Create an AesManaged object
+            // with the specified key and IV.
+            {
                 // Create a decryptor to perform the stream transform.
-                ICryptoTransform decryptor = aesAlg.CreateDecryptor(aesAlg.Key, aesAlg.IV);
+                ICryptoTransform decryptor = aesNative.CreateDecryptor(aesNative.Key, aesNative.IV);
 
                 // Create the streams used for decryption.
                 using (MemoryStream msDecrypt = new MemoryStream(encryptedText))
                 {
                     using (CryptoStream csDecrypt = new CryptoStream(msDecrypt, decryptor, CryptoStreamMode.Read))
                     {
-                        using (StreamReader srDecrypt = new StreamReader(csDecrypt))
-                        {
-
-                            // Read the decrypted bytes from the decrypting stream
-                            // and place them in a string.
-                            plainText = srDecrypt.ReadToEnd();
-                        }
+                        csDecrypt.Read(encryptedText, 0, encryptedText.Length);
                     }
+
+                    decrypted = msDecrypt.ToArray();
                 }
-
             }
-            return plainText;
+            return decrypted;
         }
 
-        public byte[] DecryptInBytes(byte[] encryptedText, ICoding coding)
-        {
-            return coding.Encode(Decrypt(encryptedText));
-        }
 
-        public static byte[] GenerateKey()
-        {
-            using (var aesAlg = new AesManaged())
-            {
-                aesAlg.GenerateKey();
-                return aesAlg.Key;
-            }
-        }
+        public byte[] GetKey() => aesNative.Key;
 
-        public static byte[] GenerateIv()
+        public void SetKey(byte[] key) => aesNative.Key = key;
+
+        public void GenerateKey() => aesNative.GenerateKey();
+
+        public void Dispose()
         {
-            using (var aesAlg = new AesManaged())
-            {
-                aesAlg.GenerateIV();
-                return aesAlg.IV;
-            }
+            aesNative?.Dispose();
         }
     }
 }

@@ -2,6 +2,7 @@
 using ChatCommon.Extensibility;
 using System;
 using System.Text;
+using ChatCommon.Encryption;
 
 namespace TestServer
 {
@@ -11,20 +12,20 @@ namespace TestServer
         {
             try
             {
-                IEncryption encryption = new AesEncryption();
-                ICoding wrapedUnicode = new Coding(new UnicodeEncoding(false, false, true));
-                UnicodeEncoding defaultUnicode = new UnicodeEncoding(false, false, true);
+                //IEncryption encryption = new AesEncryption();
+                //ICoding wrapedUnicode = new Coding(new UnicodeEncoding(false, false, true));
+                //UnicodeEncoding defaultUnicode = new UnicodeEncoding(false, false, true);
 
-                string text = "hello world";
+                //string text = "hello world";
 
-                byte[] encrypted = encryption.Encrypt(text);
-                byte[] encoded = wrapedUnicode.Encode(text);
+                //byte[] encrypted = encryption.Encrypt(text);
+                //byte[] encoded = wrapedUnicode.Encode(text);
 
-                Console.WriteLine($"Encrypted bytes: {BytesToString(encrypted)}");
-                Console.WriteLine($"Encoded bytes: {BytesToString(encoded)}");
-                Console.WriteLine($"Encrypted then decrypted: {encryption.Decrypt(encrypted)}");
+                //Console.WriteLine($"Encrypted bytes: {BytesToString(encrypted)}");
+                //Console.WriteLine($"Encoded bytes: {BytesToString(encoded)}");
+                //Console.WriteLine($"Encrypted then decrypted: {encryption.Decrypt(encrypted)}");
             }
-            catch(Exception exception)
+            catch (Exception exception)
             {
                 Console.WriteLine(exception.Message);
             }

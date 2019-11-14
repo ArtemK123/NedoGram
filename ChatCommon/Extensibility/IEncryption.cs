@@ -1,13 +1,17 @@
-﻿namespace ChatCommon.Extensibility
+﻿using System;
+
+namespace ChatCommon.Extensibility
 {
-    public interface IEncryption
+    public interface IEncryption : IDisposable
     {
-        byte[] Encrypt(string plainText);
+        byte[] Encrypt(byte[] plainTextBytes);
 
-        byte[] Encrypt(byte[] message, ICoding coding);
+        byte[] Decrypt(byte[] encryptedText);
 
-        byte[] DecryptInBytes(byte[] encryptedText, ICoding coding);
+        byte[] GetKey();
+        
+        void SetKey(byte[] key);
 
-        string Decrypt(byte[] encryptedText);
+        void GenerateKey();
     }
 }

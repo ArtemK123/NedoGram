@@ -1,6 +1,7 @@
 ﻿using System;
 using System.Text.Json;
 using ChatCommon;
+using ChatCommon.Encryption;
 using ChatCommon.Extensibility;
 
 namespace ChatServer
@@ -11,18 +12,21 @@ namespace ChatServer
 
         public string UserName { get; private set; } = "Undefined UserName";
 
-        public readonly ICoding Coding;
+        internal readonly ICoding coding;
 
         private readonly ITcpWrapper tcpClient;
 
-        private readonly ServerInstance server; 
+        private readonly ServerInstance server;
+
+        private readonly IEncryption aesEncryption;
 
         public ClientInstance(ITcpWrapper tcpClient, ServerInstance serverInstance, ICoding coding)
         {
             Id = Guid.NewGuid().ToString();
             this.tcpClient = tcpClient;
             server = serverInstance;
-            Coding = coding;
+            this.coding = coding;
+            aesEncryption = new AesEncryption();
         }
         public void Process()
         {
@@ -31,6 +35,20 @@ namespace ChatServer
                 // send to the client server public key [and other credentials]
 
                 tcpClient.Send(server.rsa.ExportRSAPublicKey());
+
+                // get key for symmetric encryption from client
+
+                byte[] rawMessageWithKey = tcpClient.GetMessage();
+
+                string messageWithKeyInJson = coding.Decode(server.rsa.Decrypt(rawMessageWithKey, false));
+
+                Console.WriteLine(messageWithKeyInJson);
+
+                Message messageWithKey = JsonSerializer.Deserialize<Message>(messageWithKeyInJson);
+
+                // todo: message should be validated
+                aesEncryption.SetKey(messageWithKey.Body);
+
 
                 // handle requests from client
 
@@ -91,12 +109,30 @@ namespace ChatServer
 
         internal bool LoginHandler(Message message)
         {
+            User user = server.userRepository.GetByName(message.Headers["user"]);
+
+            bool successful = user.Password == message.Headers["password"];
+            
+            Message response = new Message();
+
+            if (successful)
+            {
+                user.PublicKey = message.Body;
+                server.userRepository.Update(user);
+
+                response.Headers.Add("code", "200");
+            }
+            else
+            {
+                response.Headers.Add("code", "403");
+            }
+
             return false;
         }
 
         internal bool RegisterHandler(Message message)
         {
-            return false;
+            return true;
         }
 
         internal bool SendMessageHandler(Message message, byte[] rawMessage)
@@ -112,9 +148,9 @@ namespace ChatServer
 
         internal Message ParseMessage(byte[] rawMessage)
         {
-            byte[] decryptedConnectionMessage = server.rsa.Decrypt(rawMessage, false);
+            byte[] decryptedConnectionMessage = aesEncryption.Decrypt(rawMessage);
 
-            string connectionMessageInJson = Coding.Decode(decryptedConnectionMessage);
+            string connectionMessageInJson = coding.Decode(decryptedConnectionMessage);
 
             return JsonSerializer.Deserialize<Message>(connectionMessageInJson);
         }

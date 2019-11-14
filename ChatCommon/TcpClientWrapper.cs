@@ -36,11 +36,6 @@ namespace ChatCommon
             } while (stream.DataAvailable);
 
             return message.ToArray();
-            //using (MemoryStream memoryStream = new MemoryStream())
-            //{
-            //    stream.CopyTo(memoryStream);
-            //    return memoryStream.ToArray();
-            //}
         }
 
         public void Send(byte[] message)
