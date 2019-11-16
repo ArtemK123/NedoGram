@@ -33,6 +33,7 @@ namespace ChatCommon.Encryption
                 using (var cryptStream = new CryptoStream(output, encryptor, CryptoStreamMode.Write))
                 {
                     streamHandler.Write(cryptStream, plainTextBytes, 64);
+                    cryptStream.FlushFinalBlock();
                     return output.ToArray();
                 }
             }

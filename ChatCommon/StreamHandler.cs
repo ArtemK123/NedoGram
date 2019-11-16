@@ -11,13 +11,12 @@ namespace ChatCommon
         {
             var buffer = new byte[bufferSize];
             List<byte> bytes = new List<byte>();
-            var read = stream.Read(buffer, 0, buffer.Length);
+            int read = stream.Read(buffer, 0, buffer.Length);
             while (read > 0)
             {
                 bytes.AddRange(buffer.Take(read));
                 read = stream.Read(buffer, 0, buffer.Length);
             }
-            stream.Flush();
 
             return bytes.ToArray();
         }
@@ -26,15 +25,13 @@ namespace ChatCommon
         {
             using (var tempStream = new MemoryStream(bytesToWrite))
             {
-                var buffer = new byte[64];
+                var buffer = new byte[bufferSize];
                 var read = tempStream.Read(buffer, 0, buffer.Length);
                 while (read > 0)
                 {
                     stream.Write(buffer, 0, read);
                     read = tempStream.Read(buffer, 0, buffer.Length);
                 }
-
-                stream.Flush();
             }
         }
     }
