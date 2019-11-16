@@ -10,7 +10,7 @@ namespace ChatServer.Domain
 
         public bool Add(User user)
         {
-            if (users.Any(storedUser => storedUser.Name == user.Name))
+            if (user.Name.ToLower() == "server" || users.Any(storedUser => storedUser.Name == user.Name))
             {
                 return false;
             }

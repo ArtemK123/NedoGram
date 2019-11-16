@@ -30,7 +30,7 @@ namespace ChatCommon
             return decoded;
         }
 
-        public byte[] Encode(string message)
+        public byte[] GetBytes(string message)
         {
             byte[] encoded = new byte[0];
             try

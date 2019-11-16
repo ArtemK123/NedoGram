@@ -54,7 +54,7 @@ namespace ConsoleChatClient
 
                 messageWithKey.Body = aesServerKey;
 
-                tcpClient.Send(rsa.Encrypt(coding.Encode(JsonSerializer.Serialize(messageWithKey)), false));
+                tcpClient.Send(rsa.Encrypt(coding.GetBytes(JsonSerializer.Serialize(messageWithKey)), false));
 
                 // try to login until successful
 
@@ -118,7 +118,7 @@ namespace ConsoleChatClient
 
             string messageInJson = JsonSerializer.Serialize(connectMessage);
 
-            byte[] messageBytes = coding.Encode(messageInJson);
+            byte[] messageBytes = coding.GetBytes(messageInJson);
 
             byte[] encryptedBytes = aesEncryption.Encrypt(messageBytes);
             
@@ -216,7 +216,7 @@ namespace ConsoleChatClient
         {
             using (var md5 = new MD5CryptoServiceProvider())
             {
-                return Convert.ToBase64String(md5.ComputeHash(coding.Encode(password)));
+                return Convert.ToBase64String(md5.ComputeHash(coding.GetBytes(password)));
             }
         }
 
@@ -233,11 +233,11 @@ namespace ConsoleChatClient
                 headers.Add("content-type", "json/aes");
                 headers.Add("sender", UserName);
 
-                Message messageObj = new Message(headers, coding.Encode(input));
+                Message messageObj = new Message(headers, coding.GetBytes(input));
 
                 string messageInJson = JsonSerializer.Serialize(messageObj);
 
-                byte[] encryptedData = aesEncryption.Encrypt(coding.Encode(messageInJson));
+                byte[] encryptedData = aesEncryption.Encrypt(coding.GetBytes(messageInJson));
                 Console.WriteLine($"Encrypted and derypted: {aesEncryption.Decrypt(encryptedData)}");
 
                 tcpClient.Send(encryptedData);

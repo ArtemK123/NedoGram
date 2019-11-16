@@ -13,7 +13,9 @@ namespace ChatServer.Extensibility
 
         IReadOnlyCollection<User> GetUsers();
 
-        void AddUser(User user);
+        bool AddUser(User user);
+
+        bool RemoveUser(string userName);
 
         byte[] GetKey();
 

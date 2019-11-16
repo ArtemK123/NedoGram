@@ -4,6 +4,6 @@
     {
         string Decode(byte[] message);
 
-        byte[] Encode(string message);
+        byte[] GetBytes(string message);
     }
 }

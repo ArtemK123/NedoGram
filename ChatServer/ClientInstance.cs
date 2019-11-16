@@ -1,10 +1,13 @@
 ﻿using System;
+using System.Collections.Generic;
 using System.IO;
 using System.Text.Json;
+using System.Linq;
 using ChatCommon;
 using ChatCommon.Encryption;
 using ChatCommon.Extensibility;
 using ChatServer.Domain;
+using ChatServer.Extensibility;
 
 namespace ChatServer
 {
@@ -21,6 +24,8 @@ namespace ChatServer
         private readonly ServerInstance server;
 
         private readonly AesEncryption aesEncryption;
+
+        private byte[] clientAesKey;
 
         public ClientInstance(ITcpWrapper tcpClient, ServerInstance serverInstance, ICoding coding)
         {
@@ -71,6 +76,21 @@ namespace ChatServer
                             RegisterHandler(message);
                             break;
                         }
+                        case "getChats":
+                        {
+                            GetAllChatsHandler();
+                            break;
+                        }
+                        case "enterChat":
+                        {
+                            EnterChatHandler(message);
+                            break;
+                        }
+                        case "exitChat":
+                        {
+                            ExitChatHandler(message);
+                            break;
+                        }
                         case "message":
                         {
                             SendMessageHandler(message, rawMessage);
@@ -104,10 +124,11 @@ namespace ChatServer
             // todo: should be refactored
 
             bool successful = false;
-            User user = null;
+            User storedUser = null;
             try
             {
-                user = server.userRepository.GetByName(message.Headers["user"]);
+                storedUser = server.userRepository.GetByName(message.Headers["user"]);
+                user = storedUser;
 
                 successful = user.Password == message.Headers["password"];
             }
@@ -115,21 +136,57 @@ namespace ChatServer
             {
                 successful = false;
             }
-            
+
             Message response = new Message();
 
             if (successful)
             {
                 response.Headers.Add("code", "200");
+                server.userRepository.UpdateState(user.Name, UserState.Authorized);
             }
             else
             {
                 response.Headers.Add("code", "403");
             }
 
-            SendMessageWithAesEncryption(response);
+            SendMessageWithServerAesEncryption(response);
 
             return false;
+        }
+
+        internal void GetAllChatsHandler()
+        {
+            Message response = new Message();
+            response.Headers.Add("action", "provideAllChats");
+            response.Headers.Add("sender", "server");
+            response.Headers.Add("content-type", "json");
+            response.Headers.Add("encryption", "aes");
+
+            IReadOnlyCollection<IChat> chats = server.chatRepository.GetChats();
+
+            response.Body = coding.GetBytes(JsonSerializer.Serialize(chats.Select(chat => chat.Name)));
+        }
+
+        internal void EnterChatHandler(Message message)
+        {
+            IChat chat = server.chatRepository.GetChat(message.Headers["chatName"]);
+            if (chat == null)
+            {
+                SendErrorResponse();
+                return;
+            }
+            chat.AddUser(user);
+            user.CurrentChat = chat;
+            server.userRepository.UpdateState(user.Name, UserState.InChat);
+            SendSuccessResponse();
+        }
+
+        internal void ExitChatHandler(Message message)
+        {
+            user.CurrentChat.RemoveUser(user.Name);
+            user.CurrentChat = null;
+            server.userRepository.UpdateState(user.Name, UserState.Authorized);
+            SendSuccessResponse();
         }
 
         internal bool RegisterHandler(Message message)
@@ -145,7 +202,31 @@ namespace ChatServer
 
         internal bool InvalidActionHandler(Message message)
         {
+            Message response = new Message();
+            response.Headers.Add("code", "400");
+            response.Headers.Add("reason", "Unsupported action");
+            SendMessageWithServerAesEncryption(response);
+
             return false;
+        }
+
+        internal void SendSuccessResponse()
+        {
+            Message response = new Message();
+            response.Headers.Add("code", "200");
+            response.Headers.Add("result", "successful");
+            response.Headers.Add("sender", "server");
+            SendMessageWithServerAesEncryption(response);
+        }
+
+        internal void SendErrorResponse()
+        {
+            Message response = new Message();
+            response.Headers.Add("code", "500");
+            response.Headers.Add("reason", "default error from server");
+            response.Headers.Add("result", "unsuccessful");
+            response.Headers.Add("sender", "server");
+            SendMessageWithServerAesEncryption(response);
         }
 
         internal Message ParseMessage(byte[] rawMessage)
@@ -162,9 +243,10 @@ namespace ChatServer
             tcpClient.Send(message);
         }
 
-        private void SendMessageWithAesEncryption(Message message)
+        private void SendMessageWithServerAesEncryption(Message message)
         {
-            tcpClient.Send(aesEncryption.Encrypt(coding.Encode(JsonSerializer.Serialize(message))));
+            aesEncryption.SetKey(clientAesKey);
+            tcpClient.Send(aesEncryption.Encrypt(coding.GetBytes(JsonSerializer.Serialize(message))));
         }
 
         private bool KeyExchange()
@@ -185,6 +267,8 @@ namespace ChatServer
 
                 aesEncryption.SetKey(messageWithKey.Body);
                 aesEncryption.SetIv(Convert.FromBase64String(messageWithKey.Headers["iv"]));
+
+                clientAesKey = messageWithKey.Body;
             }
             catch (Exception)
             {

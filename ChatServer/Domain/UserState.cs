@@ -4,6 +4,7 @@
     {
         Unknown,
         Connected,
-        Authorized
+        Authorized,
+        InChat
     }
 }

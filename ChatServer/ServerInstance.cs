@@ -21,6 +21,7 @@ namespace ChatServer
         internal Encoding Encoding { get; } = new UnicodeEncoding(false, true, true);
 
         internal readonly IUserRepository userRepository = new UserRepository();
+        internal readonly IChatRepository chatRepository = new ChatRepository();
 
         internal ServerInstance()
         {
