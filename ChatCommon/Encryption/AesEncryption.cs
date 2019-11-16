@@ -1,5 +1,8 @@
-﻿using System.IO;
+﻿using System.Collections.Generic;
+using System.IO;
+using System.Linq;
 using System.Security.Cryptography;
+using System.Text;
 using ChatCommon.Extensibility;
 
 namespace ChatCommon.Encryption
@@ -24,25 +27,44 @@ namespace ChatCommon.Encryption
 
         public byte[] Encrypt(byte[] plainTextBytes)
         {
-            byte[] encrypted = null;
+            byte[] encrypted = new byte[plainTextBytes.Length];
+
+            byte[] tempData = new byte[plainTextBytes.Length];
 
             // Create an AesManaged object
             // with the specified key and IV.
-        
+
             // Create an encryptor to perform the stream transform.
             ICryptoTransform encryptor = aesNative.CreateEncryptor(aesNative.Key, aesNative.IV);
 
-            // Create the streams used for encryption.
-            using (MemoryStream msEncrypt = new MemoryStream())
-            {
-                using (CryptoStream csEncrypt = new CryptoStream(msEncrypt, encryptor, CryptoStreamMode.Write))
-                {
-                    csEncrypt.Write(plainTextBytes);
-                }
-                // Return the encrypted bytes from the memory stream.
 
-                encrypted = msEncrypt.ToArray();
+            using (var input = new MemoryStream(plainTextBytes))
+            using (var output = new MemoryStream())
+            {
+                using (var cryptStream = new CryptoStream(output, encryptor, CryptoStreamMode.Write))
+                {
+                    var buffer = new byte[64];
+                    var read = input.Read(buffer, 0, buffer.Length);
+                    while (read > 0)
+                    {
+                        cryptStream.Write(buffer, 0, read);
+                        read = input.Read(buffer, 0, buffer.Length);
+                    }
+                    cryptStream.FlushFinalBlock();
+                    encrypted = output.ToArray();
+                }
             }
+
+            // Create the streams used for encryption.
+            //using (MemoryStream msEncrypt = new MemoryStream())
+            //{
+            //    using (CryptoStream csEncrypt = new CryptoStream(msEncrypt, encryptor, CryptoStreamMode.Write))
+            //    {
+            //        csEncrypt.Write(plainTextBytes);
+            //    }
+
+            //    encrypted = msEncrypt.ToArray();
+            //}
 
             return encrypted;
         }
@@ -51,26 +73,30 @@ namespace ChatCommon.Encryption
         {
             // Declare the byte[] used to hold
             // the decrypted text.
-            byte[] decrypted = null;
+            List<byte> decrypted = new List<byte>();
+            
+            // Create a decryptor to perform the stream transform.
+            ICryptoTransform decryptor = aesNative.CreateDecryptor(aesNative.Key, aesNative.IV);
 
-            // Create an AesManaged object
-            // with the specified key and IV.
+            // Create the streams used for decryption.
+            using (MemoryStream msDecrypt = new MemoryStream(encryptedText))
             {
-                // Create a decryptor to perform the stream transform.
-                ICryptoTransform decryptor = aesNative.CreateDecryptor(aesNative.Key, aesNative.IV);
-
-                // Create the streams used for decryption.
-                using (MemoryStream msDecrypt = new MemoryStream(encryptedText))
+                using (CryptoStream cryptoStream = new CryptoStream(msDecrypt, decryptor, CryptoStreamMode.Read))
                 {
-                    using (CryptoStream csDecrypt = new CryptoStream(msDecrypt, decryptor, CryptoStreamMode.Read))
+                    // todo: create stream reader and move this logic there
+                    
+                    var buffer = new byte[1024];
+                    var read = cryptoStream.Read(buffer, 0, buffer.Length);
+                    while (read > 0)
                     {
-                        csDecrypt.Read(encryptedText, 0, encryptedText.Length);
+                        decrypted.AddRange(buffer.Take(read));
+                        read = cryptoStream.Read(buffer, 0, buffer.Length);
                     }
-
-                    decrypted = msDecrypt.ToArray();
+                    cryptoStream.Flush();
                 }
             }
-            return decrypted;
+
+            return decrypted.ToArray();
         }
 
 

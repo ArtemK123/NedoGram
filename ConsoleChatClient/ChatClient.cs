@@ -69,6 +69,9 @@ namespace ConsoleChatClient
                     loginHandlers.Add(LoginMenuAction.Exit, this.Exit);
 
                     successfulAction = loginHandlers[action]();
+
+                    string successMessage = successfulAction ? "successful" : "unsuccessful";
+                    Console.WriteLine($"{action.ToString()}: {successMessage}");
                 } while (!successfulAction);
 
                 // Open main menu and message receiving in different threads
@@ -111,25 +114,23 @@ namespace ConsoleChatClient
             byte[] messageBytes = coding.Encode(messageInJson);
 
             byte[] encryptedMessage = aesEncryption.Encrypt(messageBytes);
+            
+            byte[] decryptedMessage = aesEncryption.Decrypt(encryptedMessage);
 
-            byte[] decryptedMessageBytes = aesEncryption.Decrypt(encryptedMessage);
+            string decryptedInJson = coding.Decode(decryptedMessage);
 
-            string decryptedMessageInJson = coding.Decode(decryptedMessageBytes);
+            Console.WriteLine($"Encrypted and decrypted: {coding.Decode(aesEncryption.Decrypt(encryptedMessage))}");
 
-            Console.WriteLine($"Encrypted and decrypted: {decryptedMessageInJson}");
+            tcpClient.Send(encryptedMessage);
 
-            return false;
+            byte[] rawResponse = tcpClient.GetMessage();
 
-            //tcpClient.Send(data);
+            aesEncryption.SetKey(aesServerKey);
+            Message response = ParseMessage(rawResponse);
 
-            //byte[] rawResponse = tcpClient.GetMessage();
+            Console.WriteLine(JsonSerializer.Serialize(response));
 
-            //aesEncryption.SetKey(aesServerKey);
-            //Message response = ParseMessage(rawResponse);
-
-            //Console.WriteLine(JsonSerializer.Serialize(response));
-
-            //return response.Headers.ContainsKey("code") && response.Headers["code"] == "200";
+            return response.Headers.ContainsKey("code") && response.Headers["code"] == "200";
         }
 
         private bool Register()

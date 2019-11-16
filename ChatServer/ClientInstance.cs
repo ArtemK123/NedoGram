@@ -1,4 +1,5 @@
 ﻿using System;
+using System.Text;
 using System.Text.Json;
 using ChatCommon;
 using ChatCommon.Encryption;
@@ -32,6 +33,8 @@ namespace ChatServer
         {
             try
             {
+                Console.WriteLine($"New connection - {Id}");
+
                 // send to the client server public key [and other credentials]
 
                 tcpClient.Send(server.rsa.ExportRSAPublicKey());
@@ -42,13 +45,12 @@ namespace ChatServer
 
                 string messageWithKeyInJson = coding.Decode(server.rsa.Decrypt(rawMessageWithKey, false));
 
-                Console.WriteLine(messageWithKeyInJson);
-
                 Message messageWithKey = JsonSerializer.Deserialize<Message>(messageWithKeyInJson);
-
+                
                 // todo: message should be validated
                 aesEncryption.SetKey(messageWithKey.Body);
 
+                Console.WriteLine($"Connection configured. Id-{Id}; Key-{System.Convert.ToBase64String(messageWithKey.Body)}");
 
                 // handle requests from client
 

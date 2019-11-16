@@ -17,6 +17,7 @@ namespace ChatServer
         private static TcpListener tcpListener;
         private readonly List<ClientInstance> clients = new List<ClientInstance>();
         internal RSACryptoServiceProvider rsa;
+
         internal Encoding Encoding { get; } = new UnicodeEncoding(false, true, true);
 
         internal readonly IUserRepository userRepository = new UserRepository();
@@ -74,6 +75,7 @@ namespace ChatServer
                 {
                     clientInstance.SendMessage(message);
                 }
+
                 Console.WriteLine($"{sender.UserName} sent message");
             }
             catch (Exception exception)
@@ -91,6 +93,7 @@ namespace ChatServer
             {
                 client.Close();
             }
+
             Environment.Exit(0);
         }
     }
