@@ -15,7 +15,7 @@ namespace ConsoleChatClient
     {
         public string UserName = "Undefined username";
 
-        private readonly IEncryption aesEncryption;
+        private readonly AesEncryption aesEncryption;
         private readonly ICoding coding;
         private readonly ITcpWrapper tcpClient;
         private readonly RSACryptoServiceProvider rsa;
@@ -25,7 +25,7 @@ namespace ConsoleChatClient
 
         public ChatClient(
             ITcpWrapper tcpClient,
-            IEncryption aesEncryption,
+            AesEncryption aesEncryption,
             ICoding coding)
         {
             this.tcpClient = tcpClient;
@@ -48,6 +48,7 @@ namespace ConsoleChatClient
                 messageWithKey.Headers.Add("action", "connect");
                 messageWithKey.Headers.Add("content-type", "bytes/key");
                 messageWithKey.Headers.Add("algorithm", "aes");
+                messageWithKey.Headers.Add("iv", Convert.ToBase64String(aesEncryption.GetIv()));
 
                 aesServerKey = aesEncryption.GetKey();
 
@@ -98,11 +99,15 @@ namespace ConsoleChatClient
         private bool Login()
         {
             Console.WriteLine("Write your username");
-            UserName = Console.ReadLine();
+            //UserName = Console.ReadLine();
+            UserName = "test";
+            Console.WriteLine($"Test name - {UserName}");
 
             Console.WriteLine(Environment.NewLine + "Write your password");
 
-            string password = Console.ReadLine();
+            //string password = Console.ReadLine();
+            string password = "test";
+            Console.WriteLine($"Test password - {password}");
 
             Message connectMessage = new Message(new Dictionary<string, string>(), new byte[0]);
             connectMessage.Headers.Add("action", "login");
@@ -113,15 +118,17 @@ namespace ConsoleChatClient
 
             byte[] messageBytes = coding.Encode(messageInJson);
 
-            byte[] encryptedMessage = aesEncryption.Encrypt(messageBytes);
+            byte[] encryptedBytes = aesEncryption.Encrypt(messageBytes);
             
-            byte[] decryptedMessage = aesEncryption.Decrypt(encryptedMessage);
+            byte[] decrypted = aesEncryption.Decrypt(encryptedBytes);
 
-            string decryptedInJson = coding.Decode(decryptedMessage);
+            string decryptedInJson = coding.Decode(decrypted);
 
-            Console.WriteLine($"Encrypted and decrypted: {coding.Decode(aesEncryption.Decrypt(encryptedMessage))}");
+            Message decryptedMessage = JsonSerializer.Deserialize<Message>(decryptedInJson);
 
-            tcpClient.Send(encryptedMessage);
+            Console.WriteLine($"Encrypted and decrypted: {coding.Decode(aesEncryption.Decrypt(encryptedBytes))}");
+
+            tcpClient.Send(encryptedBytes);
 
             byte[] rawResponse = tcpClient.GetMessage();
 

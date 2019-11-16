@@ -102,7 +102,11 @@ namespace ChatCommon.Encryption
 
         public byte[] GetKey() => aesNative.Key;
 
+        public byte[] GetIv() => aesNative.IV;
+
         public void SetKey(byte[] key) => aesNative.Key = key;
+
+        public void SetIv(byte[] iv) => aesNative.IV = iv;
 
         public void GenerateKey() => aesNative.GenerateKey();
 

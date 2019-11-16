@@ -1,5 +1,4 @@
 ﻿using System;
-using System.Text;
 using System.Text.Json;
 using ChatCommon;
 using ChatCommon.Encryption;
@@ -19,7 +18,7 @@ namespace ChatServer
 
         private readonly ServerInstance server;
 
-        private readonly IEncryption aesEncryption;
+        private readonly AesEncryption aesEncryption;
 
         public ClientInstance(ITcpWrapper tcpClient, ServerInstance serverInstance, ICoding coding)
         {
@@ -46,11 +45,15 @@ namespace ChatServer
                 string messageWithKeyInJson = coding.Decode(server.rsa.Decrypt(rawMessageWithKey, false));
 
                 Message messageWithKey = JsonSerializer.Deserialize<Message>(messageWithKeyInJson);
-                
-                // todo: message should be validated
-                aesEncryption.SetKey(messageWithKey.Body);
 
-                Console.WriteLine($"Connection configured. Id-{Id}; Key-{System.Convert.ToBase64String(messageWithKey.Body)}");
+                // todo: message should be validated
+
+                byte[] iv = Convert.FromBase64String(messageWithKey.Headers["iv"]);
+                aesEncryption.SetKey(messageWithKey.Body);
+                aesEncryption.SetIv(iv);
+
+
+                Console.WriteLine($"Connection configured. Id-{Id}; Key-{Convert.ToBase64String(messageWithKey.Body)}");
 
                 // handle requests from client
 
@@ -111,9 +114,21 @@ namespace ChatServer
 
         internal bool LoginHandler(Message message)
         {
-            User user = server.userRepository.GetByName(message.Headers["user"]);
+            // todo: should be refactored
 
-            bool successful = user.Password == message.Headers["password"];
+
+            bool successful = false;
+            User user = null;
+            try
+            {
+                user = server.userRepository.GetByName(message.Headers["user"]);
+
+                successful = user.Password == message.Headers["password"];
+            }
+            catch (Exception)
+            {
+                successful = false;
+            }
             
             Message response = new Message();
 
