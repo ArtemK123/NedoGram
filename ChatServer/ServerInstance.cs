@@ -76,7 +76,7 @@ namespace ChatServer
                     clientInstance.SendMessage(message);
                 }
 
-                Console.WriteLine($"{sender.UserName} sent message");
+                Console.WriteLine($"{sender.user.Name} sent message");
             }
             catch (Exception exception)
             {

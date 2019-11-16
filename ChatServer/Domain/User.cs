@@ -1,15 +1,22 @@
-﻿using System;
-using System.Collections.Generic;
-using System.Text;
+﻿using ChatServer.Extensibility;
+using System;
 
-namespace ChatServer
+namespace ChatServer.Domain
 {
     internal class User
     {
-        public string Name { get; set; }
+        public string Name { get; }
 
         public string Password { get; set; }
 
-        public byte[] PublicKey { get; set; }
+        public UserState State { get; set; }
+
+        public IChat CurrentChat { get; set; }
+
+        public User(string name = "Unknown user")
+        {
+            Name = name;
+            State = UserState.Unknown;
+        }
     }
 }

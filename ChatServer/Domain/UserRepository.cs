@@ -1,39 +1,44 @@
 ﻿using System.Collections.Generic;
-using ChatCommon.Extensibility;
+using System.Linq;
 using ChatServer.Extensibility;
 
 namespace ChatServer.Domain
 {
     internal class UserRepository : IUserRepository
     {
-        private readonly Dictionary<string, User> users = new Dictionary<string, User>();
+        private readonly List<User> users = new List<User>();
 
         public bool Add(User user)
         {
-            if (!users.ContainsKey(user.Name))
-            {
-                users.Add(user.Name, user);
-                return true;
-            }
-
-            return false;
-        }
-
-        public bool Update(User user)
-        {
-            User oldUser;
-            if (!users.TryGetValue(user.Name, out oldUser))
+            if (users.Any(storedUser => storedUser.Name == user.Name))
             {
                 return false;
             }
 
-            users[oldUser.Name] = user;
+            users.Add(user);
             return true;
         }
 
         public User GetByName(string name)
         {
-            return users[name];
+            return users.FirstOrDefault(user => user.Name == name);
+        }
+
+        public bool Contains(string userName)
+        {
+            return users.Any(user => user.Name == userName);
+        }
+
+        public bool UpdateState(string userName, UserState state)
+        {
+            User user = users.FirstOrDefault(storedUser => storedUser.Name == userName);
+
+            if (user == null)
+            {
+                return false;
+            }
+            user.State = state;
+            return true;
         }
     }
 }

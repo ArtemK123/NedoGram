@@ -1,18 +1,18 @@
 ﻿using System;
 using System.IO;
-using System.Security.Cryptography;
 using System.Text.Json;
 using ChatCommon;
 using ChatCommon.Encryption;
 using ChatCommon.Extensibility;
+using ChatServer.Domain;
 
 namespace ChatServer
 {
     public class ClientInstance
     {
-        protected internal string Id { get; }
+        protected internal Guid Id { get; }
 
-        public string UserName { get; private set; } = "Undefined UserName";
+        internal User user;
 
         internal readonly ICoding coding;
 
@@ -24,11 +24,12 @@ namespace ChatServer
 
         public ClientInstance(ITcpWrapper tcpClient, ServerInstance serverInstance, ICoding coding)
         {
-            Id = Guid.NewGuid().ToString();
-            this.tcpClient = tcpClient;
+            Id = Guid.NewGuid();
             server = serverInstance;
+            this.tcpClient = tcpClient;
             this.coding = coding;
             aesEncryption = new AesEncryption();
+            user = new User();
         }
         public void Process()
         {
@@ -46,6 +47,7 @@ namespace ChatServer
 
                 Console.WriteLine(
                     $"Key exchanged successfully. Connection configured. Id-{Id}; Key-{Convert.ToBase64String(aesEncryption.GetKey())}");
+                user.State = UserState.Connected;
 
                 // handle requests from client
 
@@ -84,7 +86,11 @@ namespace ChatServer
             }
             catch (IOException)
             {
-                Console.WriteLine($"User left. Username: {UserName}; id: {Id}");
+                Console.WriteLine($"User left. Username: {user.Name}; id: {Id}");
+                if (user.State == UserState.Authorized)
+                {
+                    server.userRepository.UpdateState(user.Name, UserState.Unknown);
+                }
                 server.RemoveConnection(this);
             }
             catch (Exception exception)
@@ -114,9 +120,6 @@ namespace ChatServer
 
             if (successful)
             {
-                user.PublicKey = message.Body;
-                server.userRepository.Update(user);
-
                 response.Headers.Add("code", "200");
             }
             else
