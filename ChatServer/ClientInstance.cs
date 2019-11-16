@@ -1,4 +1,6 @@
 ﻿using System;
+using System.IO;
+using System.Security.Cryptography;
 using System.Text.Json;
 using ChatCommon;
 using ChatCommon.Encryption;
@@ -34,26 +36,16 @@ namespace ChatServer
             {
                 Console.WriteLine($"New connection - {Id}");
 
-                // send to the client server public key [and other credentials]
+                bool successfulExchange = false;
 
-                tcpClient.Send(server.rsa.ExportRSAPublicKey());
+                do
+                {
+                    Console.WriteLine($"Key exchange");
+                    successfulExchange = KeyExchange();
+                } while (!successfulExchange);
 
-                // get key for symmetric encryption from client
-
-                byte[] rawMessageWithKey = tcpClient.GetMessage();
-
-                string messageWithKeyInJson = coding.Decode(server.rsa.Decrypt(rawMessageWithKey, false));
-
-                Message messageWithKey = JsonSerializer.Deserialize<Message>(messageWithKeyInJson);
-
-                // todo: message should be validated
-
-                byte[] iv = Convert.FromBase64String(messageWithKey.Headers["iv"]);
-                aesEncryption.SetKey(messageWithKey.Body);
-                aesEncryption.SetIv(iv);
-
-
-                Console.WriteLine($"Connection configured. Id-{Id}; Key-{Convert.ToBase64String(messageWithKey.Body)}");
+                Console.WriteLine(
+                    $"Key exchanged successfully. Connection configured. Id-{Id}; Key-{Convert.ToBase64String(aesEncryption.GetKey())}");
 
                 // handle requests from client
 
@@ -64,11 +56,6 @@ namespace ChatServer
                     Message message = ParseMessage(rawMessage);
 
                     Console.WriteLine(JsonSerializer.Serialize(message));
-
-                    if (!message.Headers.ContainsKey("action"))
-                    {
-                        continue;
-                    }
 
                     switch (message.Headers["action"].ToLower())
                     {
@@ -94,28 +81,21 @@ namespace ChatServer
                         }
                     }
                 }
-
-                //UserName = connectonMessage.Headers["user"];
-
-                //Console.WriteLine($"Received message: {connectionMessageInJson}");
-
+            }
+            catch (IOException)
+            {
+                Console.WriteLine($"User left. Username: {UserName}; id: {Id}");
+                server.RemoveConnection(this);
             }
             catch (Exception exception)
             {
-                Console.WriteLine($"{UserName}: left chat");
                 Console.WriteLine(exception.Message);
-            }
-            finally
-            {
-                server.RemoveConnection(this);
-                Close();
             }
         }
 
         internal bool LoginHandler(Message message)
         {
             // todo: should be refactored
-
 
             bool successful = false;
             User user = null;
@@ -143,6 +123,8 @@ namespace ChatServer
             {
                 response.Headers.Add("code", "403");
             }
+
+            SendMessageWithAesEncryption(response);
 
             return false;
         }
@@ -175,6 +157,40 @@ namespace ChatServer
         internal void SendMessage(byte[] message)
         {
             tcpClient.Send(message);
+        }
+
+        private void SendMessageWithAesEncryption(Message message)
+        {
+            tcpClient.Send(aesEncryption.Encrypt(coding.Encode(JsonSerializer.Serialize(message))));
+        }
+
+        private bool KeyExchange()
+        {
+            // send to the client server public key [and other credentials]
+
+            tcpClient.Send(server.rsa.ExportRSAPublicKey());
+
+            // get key for symmetric encryption from client
+
+            byte[] encryptedMessageWithKey = tcpClient.GetMessage();
+
+            try
+            {
+                byte[] messageWithKeyBytes = server.rsa.Decrypt(encryptedMessageWithKey, false);
+                string messageWithKeyInJson = coding.Decode(messageWithKeyBytes);
+                Message messageWithKey = JsonSerializer.Deserialize<Message>(messageWithKeyInJson);
+
+                aesEncryption.SetKey(messageWithKey.Body);
+                aesEncryption.SetIv(Convert.FromBase64String(messageWithKey.Headers["iv"]));
+            }
+            catch (Exception)
+            {
+                // todo: return meaningful error descriptions
+
+                return false;
+            }
+
+            return true;
         }
 
         protected internal void Close()

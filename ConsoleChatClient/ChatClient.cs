@@ -62,6 +62,8 @@ namespace ConsoleChatClient
 
                 do
                 {
+                    Console.WriteLine(ConstantsProvider.WelcomeMessage);
+
                     LoginMenuAction action = GetLoginAction();
 
                     Dictionary<LoginMenuAction, Func<bool>> loginHandlers = new Dictionary<LoginMenuAction, Func<bool>>();
