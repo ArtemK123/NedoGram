@@ -76,6 +76,11 @@ namespace ChatServer
                             RegisterHandler(message);
                             break;
                         }
+                        case "createChat":
+                        {
+                            CreateChatHandler(message);
+                            break;
+                        }
                         case "getChats":
                         {
                             GetAllChatsHandler();
@@ -93,7 +98,7 @@ namespace ChatServer
                         }
                         case "message":
                         {
-                            SendMessageHandler(message, rawMessage);
+                            MessageHandler(message, rawMessage);
                             break;
                         }
                         default:
@@ -154,6 +159,17 @@ namespace ChatServer
             return false;
         }
 
+        internal void CreateChatHandler(Message message)
+        {
+            string chatName = message.Headers["chatName"];
+            IChat newChat = new Chat(user, chatName);
+            newChat.AddUser(user);
+            user.State = UserState.InChat;
+            server.userRepository.UpdateState(user.Name, UserState.InChat);
+            server.chatRepository.AddChat(newChat);
+            SendSuccessResponse(newChat.Key);
+        }
+
         internal void GetAllChatsHandler()
         {
             Message response = new Message();
@@ -178,7 +194,7 @@ namespace ChatServer
             chat.AddUser(user);
             user.CurrentChat = chat;
             server.userRepository.UpdateState(user.Name, UserState.InChat);
-            SendSuccessResponse();
+            SendSuccessResponse(chat.Key);
         }
 
         internal void ExitChatHandler(Message message)
@@ -194,8 +210,10 @@ namespace ChatServer
             return true;
         }
 
-        internal bool SendMessageHandler(Message message, byte[] rawMessage)
+        internal bool MessageHandler(Message message, byte[] rawMessage)
         {
+            server.messageSender.SendToChat(message.Headers["chat"], message);
+
             server.BroadcastMessage(rawMessage, this);
             return true;
         }
@@ -210,12 +228,16 @@ namespace ChatServer
             return false;
         }
 
-        internal void SendSuccessResponse()
+        internal void SendSuccessResponse(byte[] body = null)
         {
             Message response = new Message();
             response.Headers.Add("code", "200");
             response.Headers.Add("result", "successful");
             response.Headers.Add("sender", "server");
+            if (body != null)
+            {
+                response.Body = body;
+            }
             SendMessageWithServerAesEncryption(response);
         }
 
@@ -238,12 +260,12 @@ namespace ChatServer
             return JsonSerializer.Deserialize<Message>(connectionMessageInJson);
         }
 
-        internal void SendMessage(byte[] message)
+        internal void SendMessageBytes(byte[] message)
         {
             tcpClient.Send(message);
         }
 
-        private void SendMessageWithServerAesEncryption(Message message)
+        internal void SendMessageWithServerAesEncryption(Message message)
         {
             aesEncryption.SetKey(clientAesKey);
             tcpClient.Send(aesEncryption.Encrypt(coding.GetBytes(JsonSerializer.Serialize(message))));

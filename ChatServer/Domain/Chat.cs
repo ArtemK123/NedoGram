@@ -9,7 +9,7 @@ namespace ChatServer.Domain
     {
         List<User> users = new List<User>();
 
-        public Chat()
+        public Chat(User creator, string name)
         {
 
         }
@@ -17,13 +17,11 @@ namespace ChatServer.Domain
         public Guid Id => throw new NotImplementedException();
 
         public string Name { get => throw new NotImplementedException(); set => throw new NotImplementedException(); }
+        public byte[] Key { get => throw new NotImplementedException(); set => throw new NotImplementedException(); }
+
+        public User Creator => throw new NotImplementedException();
 
         public void AddUser(User user)
-        {
-            throw new NotImplementedException();
-        }
-
-        public byte[] GetKey()
         {
             throw new NotImplementedException();
         }
@@ -39,11 +37,6 @@ namespace ChatServer.Domain
         }
 
         public void SendMessage(Message message)
-        {
-            throw new NotImplementedException();
-        }
-
-        public void SetKey(byte[] key)
         {
             throw new NotImplementedException();
         }

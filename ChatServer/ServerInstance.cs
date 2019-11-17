@@ -15,16 +15,18 @@ namespace ChatServer
     public class ServerInstance
     {
         private static TcpListener tcpListener;
-        private readonly List<ClientInstance> clients = new List<ClientInstance>();
+        internal readonly List<ClientInstance> clients = new List<ClientInstance>();
         internal RSACryptoServiceProvider rsa;
 
         internal Encoding Encoding { get; } = new UnicodeEncoding(false, true, true);
 
         internal readonly IUserRepository userRepository = new UserRepository();
         internal readonly IChatRepository chatRepository = new ChatRepository();
+        internal readonly IMessageSenderService messageSender;
 
         internal ServerInstance()
         {
+            messageSender = new MessageHandler(this);
         }
 
         public void Listen(int port)

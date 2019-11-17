@@ -9,6 +9,10 @@ namespace ChatServer.Extensibility
     {
         Guid Id { get; }
 
+        User Creator { get; }
+
+        byte[] Key { get; set; }
+
         string Name { get; set; }
 
         IReadOnlyCollection<User> GetUsers();
@@ -16,10 +20,6 @@ namespace ChatServer.Extensibility
         bool AddUser(User user);
 
         bool RemoveUser(string userName);
-
-        byte[] GetKey();
-
-        void SetKey(byte[] key);
 
         void SendMessage(Message message);
     }
