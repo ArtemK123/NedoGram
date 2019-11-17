@@ -76,7 +76,7 @@ namespace ChatServer
             {
                 foreach (ClientInstance clientInstance in clients.Where(client => !client.Id.Equals(sender.Id)))
                 {
-                    clientInstance.SendMessage(message);
+                    clientInstance.SendMessageBytes(message);
                 }
 
                 Console.WriteLine($"{sender.user.Name} sent message");

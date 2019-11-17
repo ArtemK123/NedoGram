@@ -10,6 +10,8 @@ namespace ConsoleChatClient.Domain
 
         public static readonly string LoginMenuTitle = "Login menu";
 
+        public static readonly string MainMenuTitle = "Main menu";
+
         public static readonly string LoginMenuItems =
             "1. Sign in" + Environment.NewLine +
             "2. Sign up" + Environment.NewLine +

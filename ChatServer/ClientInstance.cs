@@ -111,7 +111,7 @@ namespace ChatServer
             }
             catch (IOException)
             {
-                Console.WriteLine($"User left. Username: {user.Name}; id: {Id}");
+                Console.WriteLine($"User left. Username: {user?.Name}; id: {Id}");
                 if (user.State == UserState.Authorized)
                 {
                     server.userRepository.UpdateState(user.Name, UserState.Unknown);

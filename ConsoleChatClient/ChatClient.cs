@@ -47,22 +47,58 @@ namespace ConsoleChatClient
                 {
                     Console.WriteLine(ConstantsProvider.WelcomeMessage);
 
-                    LoginMenuAction action = GetLoginAction();
+                    MenuAction loginAction = GetLoginAction();
 
-                    Dictionary<LoginMenuAction, Func<bool>> loginHandlers = new Dictionary<LoginMenuAction, Func<bool>>();
-                    loginHandlers.Add(LoginMenuAction.Login, this.Login);
-                    loginHandlers.Add(LoginMenuAction.Register, this.Register);
-                    loginHandlers.Add(LoginMenuAction.Exit, this.Exit);
+                    Dictionary<MenuAction, Func<bool>> loginHandlers = new Dictionary<MenuAction, Func<bool>>();
+                    loginHandlers.Add(MenuAction.Login, this.LoginHandler);
+                    loginHandlers.Add(MenuAction.Register, this.RegisterHandler);
+                    loginHandlers.Add(MenuAction.Exit, this.ExitHandler);
 
-                    successfulAction = loginHandlers[action]();
+                    successfulAction = loginHandlers[loginAction]();
 
                     string successMessage = successfulAction ? "successful" : "unsuccessful";
-                    Console.WriteLine($"{action.ToString()}: {successMessage}");
+                    Console.WriteLine($"{loginAction.ToString()}: {successMessage}");
                 } while (!successfulAction);
 
                 // Open main menu and message receiving in different threads
 
-                ShowMainMenu();
+                bool isExit = false;
+                while (!isExit)
+                {
+                    Console.WriteLine(Environment.NewLine + ConstantsProvider.MainMenuTitle + Environment.NewLine + ConstantsProvider.MainMenu);
+                    string actionNumber = Console.ReadLine();
+
+                    switch (actionNumber)
+                    {
+                        case "1":
+                            {
+                                ShowAllChatsHandler();
+                                break;
+                            }
+                        case "2":
+                            {
+                                CreateChatHandler();
+                                break;
+                            }
+                        case "3":
+                            {
+                                EnterChatHandler();
+                                break;
+                            }
+                        case "0":
+                            {
+                                ExitHandler();
+                                isExit = true;
+                                break;
+                            }
+                        default:
+                            {
+                                Console.WriteLine($"Unsopported action number - {actionNumber}");
+                                break;
+                            }
+                    }
+                }
+                
 
 
 
@@ -85,9 +121,17 @@ namespace ConsoleChatClient
             }
         }
 
-        private void ShowMainMenu()
+        private void ShowAllChatsHandler()
         {
-
+            Console.WriteLine("ShowAllChatsHandler");
+        }
+        private void CreateChatHandler()
+        {
+            Console.WriteLine("CreateChatHandler");
+        }
+        private void EnterChatHandler()
+        {
+            Console.WriteLine("EnterChatHandler");
         }
 
         private void KeyExchange()
@@ -116,7 +160,7 @@ namespace ConsoleChatClient
             tcpClient.Send(aesEncryption.Encrypt(coding.GetBytes(JsonSerializer.Serialize(message))));
         }
 
-        private bool Login()
+        private bool LoginHandler()
         {
             Console.WriteLine("Write your username");
             //UserName = Console.ReadLine();
@@ -160,12 +204,12 @@ namespace ConsoleChatClient
             return response.Headers.ContainsKey("code") && response.Headers["code"] == "200";
         }
 
-        private bool Register()
+        private bool RegisterHandler()
         {
             return true;
         }
 
-        private bool Exit()
+        private bool ExitHandler()
         {
             Dispose();
             return true;
@@ -173,12 +217,12 @@ namespace ConsoleChatClient
 
         private void ReadServerPublicKey()
         {
-            byte[] key = tcpClient.GetMessage());
+            byte[] key = tcpClient.GetMessage();
             int bytesParsed;
             rsa.ImportRSAPublicKey(key, out bytesParsed);
         }
 
-        private LoginMenuAction GetLoginAction()
+        private MenuAction GetLoginAction()
         {
             while (true)
             {
@@ -189,15 +233,15 @@ namespace ConsoleChatClient
                 {
                     case "1":
                     {
-                        return LoginMenuAction.Login;
+                        return MenuAction.Login;
                     }
                     case "2":
                     {
-                        return LoginMenuAction.Register;
+                        return MenuAction.Register;
                     }
                     case "0":
                     {
-                        return LoginMenuAction.Exit;
+                        return MenuAction.Exit;
                     }
                 }
             }
