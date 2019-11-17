@@ -19,9 +19,8 @@ namespace ConsoleChatClient
         private readonly ICoding coding;
         private readonly ITcpWrapper tcpClient;
         private readonly RSACryptoServiceProvider rsa;
-        private byte[] serverRsaPublicKey;
-        private byte[] myRsaPublicKey;
-        private byte[] aesServerKey;
+        private byte[] serverKey;
+        private byte[] chatKey;
 
         public ChatClient(
             ITcpWrapper tcpClient,
@@ -32,29 +31,13 @@ namespace ConsoleChatClient
             this.aesEncryption = aesEncryption;
             this.coding = coding;
             rsa = new RSACryptoServiceProvider(4096);
-            myRsaPublicKey = rsa.ExportRSAPublicKey();
         }
 
         public void Listen()
         {
             try
-            {
-                // read server credentials
-
-                ReadServerPublicKey();
-
-                Message messageWithKey = new Message();
-
-                messageWithKey.Headers.Add("action", "connect");
-                messageWithKey.Headers.Add("content-type", "bytes/key");
-                messageWithKey.Headers.Add("algorithm", "aes");
-                messageWithKey.Headers.Add("iv", Convert.ToBase64String(aesEncryption.GetIv()));
-
-                aesServerKey = aesEncryption.GetKey();
-
-                messageWithKey.Body = aesServerKey;
-
-                tcpClient.Send(rsa.Encrypt(coding.GetBytes(JsonSerializer.Serialize(messageWithKey)), false));
+            { 
+                KeyExchange();
 
                 // try to login until successful
 
@@ -78,7 +61,11 @@ namespace ConsoleChatClient
                 } while (!successfulAction);
 
                 // Open main menu and message receiving in different threads
-                
+
+                ShowMainMenu();
+
+
+
                 Thread receiveThread = new Thread(ReceiveMessage);
                 receiveThread.Start();
 
@@ -96,6 +83,37 @@ namespace ConsoleChatClient
             {
                 Dispose();
             }
+        }
+
+        private void ShowMainMenu()
+        {
+
+        }
+
+        private void KeyExchange()
+        {
+            // read server credentials
+            ReadServerPublicKey();
+
+            // send aes key and iv to the server
+            Message messageWithKey = new Message();
+
+            messageWithKey.Headers.Add("action", "connect");
+            messageWithKey.Headers.Add("content-type", "bytes/key");
+            messageWithKey.Headers.Add("algorithm", "aes");
+            messageWithKey.Headers.Add("iv", Convert.ToBase64String(aesEncryption.GetIv()));
+
+            serverKey = aesEncryption.GetKey();
+
+            messageWithKey.Body = serverKey;
+
+            tcpClient.Send(rsa.Encrypt(coding.GetBytes(JsonSerializer.Serialize(messageWithKey)), false));
+        }
+
+        private void SendMessageAesEncrypted(Message message, byte[] key)
+        {
+            aesEncryption.SetKey(key);
+            tcpClient.Send(aesEncryption.Encrypt(coding.GetBytes(JsonSerializer.Serialize(message))));
         }
 
         private bool Login()
@@ -134,7 +152,7 @@ namespace ConsoleChatClient
 
             byte[] rawResponse = tcpClient.GetMessage();
 
-            aesEncryption.SetKey(aesServerKey);
+            aesEncryption.SetKey(serverKey);
             Message response = ParseMessage(rawResponse);
 
             Console.WriteLine(JsonSerializer.Serialize(response));
@@ -155,18 +173,9 @@ namespace ConsoleChatClient
 
         private void ReadServerPublicKey()
         {
-            byte[] serverPublicKey = tcpClient.GetMessage();
-            if (ImportPublicKey(serverPublicKey) > 0)
-            {
-                this.serverRsaPublicKey = serverPublicKey;
-            }
-        }
-
-        private int ImportPublicKey(byte[] key)
-        {
+            byte[] key = tcpClient.GetMessage());
             int bytesParsed;
             rsa.ImportRSAPublicKey(key, out bytesParsed);
-            return bytesParsed;
         }
 
         private LoginMenuAction GetLoginAction()
@@ -246,6 +255,8 @@ namespace ConsoleChatClient
 
         private void ReceiveMessage()
         {
+            // todo: should be implemented in differnet way
+
             while (true)
             {
                 try
