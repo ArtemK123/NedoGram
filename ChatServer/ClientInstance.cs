@@ -114,7 +114,7 @@ namespace ChatServer
                 Console.WriteLine($"User left. Username: {user?.Name}; id: {Id}");
                 if (user.State == UserState.Authorized)
                 {
-                    server.userRepository.UpdateState(user.Name, UserState.Unknown);
+                    server.userRepository.UpdateState(user.Name, UserState.Offline);
                 }
                 server.RemoveConnection(this);
             }

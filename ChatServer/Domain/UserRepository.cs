@@ -1,5 +1,6 @@
 ﻿using System.Collections.Generic;
 using System.Linq;
+using ChatCommon;
 using ChatServer.Extensibility;
 
 namespace ChatServer.Domain

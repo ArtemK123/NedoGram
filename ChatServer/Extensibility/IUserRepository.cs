@@ -1,4 +1,5 @@
-﻿using ChatServer.Domain;
+﻿using ChatCommon;
+using ChatServer.Domain;
 
 namespace ChatServer.Extensibility
 {

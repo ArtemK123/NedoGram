@@ -1,4 +1,5 @@
-﻿using ChatServer.Extensibility;
+﻿using ChatCommon;
+using ChatServer.Extensibility;
 using System;
 
 namespace ChatServer.Domain
@@ -16,7 +17,7 @@ namespace ChatServer.Domain
         public User(string name = "Unknown user")
         {
             Name = name;
-            State = UserState.Unknown;
+            State = UserState.Offline;
         }
     }
 }

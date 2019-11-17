@@ -21,6 +21,8 @@ namespace ConsoleChatClient
         private readonly RSACryptoServiceProvider rsa;
         private byte[] serverKey;
         private byte[] chatKey;
+        private UserState state = UserState.Offline;
+        private string chatName = null;
 
         public ChatClient(
             ITcpWrapper tcpClient,
@@ -38,6 +40,8 @@ namespace ConsoleChatClient
             try
             { 
                 KeyExchange();
+
+                state = UserState.Connected;
 
                 // try to login until successful
 
@@ -60,50 +64,92 @@ namespace ConsoleChatClient
                     Console.WriteLine($"{loginAction.ToString()}: {successMessage}");
                 } while (!successfulAction);
 
+                state = UserState.Authorized;
+
                 // Open main menu and message receiving in different threads
-
-                bool isExit = false;
-                while (!isExit)
-                {
-                    Console.WriteLine(Environment.NewLine + ConstantsProvider.MainMenuTitle + Environment.NewLine + ConstantsProvider.MainMenu);
-                    string actionNumber = Console.ReadLine();
-
-                    switch (actionNumber)
-                    {
-                        case "1":
-                            {
-                                ShowAllChatsHandler();
-                                break;
-                            }
-                        case "2":
-                            {
-                                CreateChatHandler();
-                                break;
-                            }
-                        case "3":
-                            {
-                                EnterChatHandler();
-                                break;
-                            }
-                        case "0":
-                            {
-                                ExitHandler();
-                                isExit = true;
-                                break;
-                            }
-                        default:
-                            {
-                                Console.WriteLine($"Unsopported action number - {actionNumber}");
-                                break;
-                            }
-                    }
-                }
                 
-
-
-
                 Thread receiveThread = new Thread(ReceiveMessage);
                 receiveThread.Start();
+
+                List<string> commandSymbols = new List<string>() { "~", "-c" };
+
+                if (state == UserState.Authorized)
+                {
+                    bool isExit = false;
+                    while (!isExit)
+                    {
+                        Console.WriteLine(Environment.NewLine + ConstantsProvider.MainMenuTitle + Environment.NewLine + ConstantsProvider.MainMenu);
+                        string actionNumber = Console.ReadLine();
+
+                        switch (actionNumber)
+                        {
+                            case "1":
+                                {
+                                    ShowAllChatsHandler();
+                                    break;
+                                }
+                            case "2":
+                                {
+                                    CreateChatHandler();
+                                    break;
+                                }
+                            case "3":
+                                {
+                                    EnterChatHandler();
+                                    break;
+                                }
+                            case "0":
+                                {
+                                    ExitHandler();
+                                    isExit = true;
+                                    break;
+                                }
+                            default:
+                                {
+                                    Console.WriteLine($"Unsopported action number - {actionNumber}");
+                                    break;
+                                }
+                        }
+                    }
+                }
+                else if (state == UserState.InChat)
+                {
+                    Console.WriteLine(chatName);
+                    Console.WriteLine(ConstantsProvider.ChatMenu);
+
+                    string input = Console.ReadLine();
+
+                    if (IsCommand(input))
+                    {
+                        MenuAction action = GetChatAction(input);
+                        switch(action)
+                        {
+                            case MenuAction.SendMessage:
+                                {
+                                    SendMessageHandler();
+                                    break;
+                                }
+                            case MenuAction.ShowUsers:
+                                {
+                                    ShowAllUsersHandler();
+                                    break;
+                                }
+                            case MenuAction.GotoMainMenu:
+                                {
+                                    GotoMainMenuHandler();
+                                    break;
+                                }
+                            
+                        }
+
+                    }
+                    else
+                    {
+                        SendMessageHandler();
+                    }
+
+                }
+
 
                 // Get menu action
 
@@ -119,6 +165,31 @@ namespace ConsoleChatClient
             {
                 Dispose();
             }
+        }
+
+
+
+        private void SendMessageHandler()
+        {
+            throw new NotImplementedException();
+        }
+        private void ShowAllUsersHandler()
+        {
+            throw new NotImplementedException();
+        }
+        private void GotoMainMenuHandler()
+        {
+            throw new NotImplementedException();
+        }
+
+        private MenuAction GetChatAction(string input)
+        {
+            throw new NotImplementedException();
+        }
+
+        private bool IsCommand(string message)
+        {
+            throw new NotImplementedException();
         }
 
         private void ShowAllChatsHandler()

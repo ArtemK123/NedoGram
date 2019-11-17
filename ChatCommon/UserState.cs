@@ -1,8 +1,8 @@
-﻿namespace ChatServer.Domain
+﻿namespace ChatCommon
 {
     public enum UserState
     {
-        Unknown,
+        Offline,
         Connected,
         Authorized,
         InChat
