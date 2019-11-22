@@ -5,13 +5,14 @@ using System.Text.Json;
 using System.Threading;
 using ChatCommon;
 using ChatCommon.Encryption;
+using ChatCommon.Exceptions;
 using ChatCommon.Extensibility;
 using ConsoleChatClient.Domain;
 using ConsoleChatClient.Domain.Actions;
 
 namespace ConsoleChatClient
 {
-    internal class ChatClient : IChatClient, IDisposable
+    internal class ChatClient : IChatClient
     {
         public string UserName = "Undefined username";
 
@@ -24,6 +25,8 @@ namespace ConsoleChatClient
         private UserState state = UserState.Offline;
         private string chatName = null;
 
+        private Dictionary<UserAction, Action> userActionHandlers;
+
         public ChatClient(
             ITcpWrapper tcpClient,
             AesEncryption aesEncryption,
@@ -33,6 +36,7 @@ namespace ConsoleChatClient
             this.aesEncryption = aesEncryption;
             this.coding = coding;
             rsa = new RSACryptoServiceProvider(4096);
+            InitializeHandlers();
         }
 
         public void Listen()
@@ -43,118 +47,17 @@ namespace ConsoleChatClient
 
                 state = UserState.Connected;
 
-                // try to login until successful
+                Console.WriteLine(ConstantsProvider.WelcomeMessage);
 
-                bool successfulAction = false;
-
-                do
-                {
-                    Console.WriteLine(ConstantsProvider.WelcomeMessage);
-
-                    MenuAction loginAction = GetLoginAction();
-
-                    Dictionary<MenuAction, Func<bool>> loginHandlers = new Dictionary<MenuAction, Func<bool>>();
-                    loginHandlers.Add(MenuAction.Login, this.LoginHandler);
-                    loginHandlers.Add(MenuAction.Register, this.RegisterHandler);
-                    loginHandlers.Add(MenuAction.Exit, this.ExitHandler);
-
-                    successfulAction = loginHandlers[loginAction]();
-
-                    string successMessage = successfulAction ? "successful" : "unsuccessful";
-                    Console.WriteLine($"{loginAction.ToString()}: {successMessage}");
-                } while (!successfulAction);
-
-                state = UserState.Authorized;
-
-                // Open main menu and message receiving in different threads
-                
                 Thread receiveThread = new Thread(ReceiveMessage);
                 receiveThread.Start();
 
-                List<string> commandSymbols = new List<string>() { "~", "-c" };
-
-                if (state == UserState.Authorized)
+                while (state != UserState.Offline)
                 {
-                    bool isExit = false;
-                    while (!isExit)
-                    {
-                        Console.WriteLine(Environment.NewLine + ConstantsProvider.MainMenuTitle + Environment.NewLine + ConstantsProvider.MainMenu);
-                        string actionNumber = Console.ReadLine();
+                    UserAction action = GetUserAction();
+                    userActionHandlers[action].Invoke();
 
-                        switch (actionNumber)
-                        {
-                            case "1":
-                                {
-                                    ShowAllChatsHandler();
-                                    break;
-                                }
-                            case "2":
-                                {
-                                    CreateChatHandler();
-                                    break;
-                                }
-                            case "3":
-                                {
-                                    EnterChatHandler();
-                                    break;
-                                }
-                            case "0":
-                                {
-                                    ExitHandler();
-                                    isExit = true;
-                                    break;
-                                }
-                            default:
-                                {
-                                    Console.WriteLine($"Unsopported action number - {actionNumber}");
-                                    break;
-                                }
-                        }
-                    }
-                }
-                else if (state == UserState.InChat)
-                {
-                    Console.WriteLine(chatName);
-                    Console.WriteLine(ConstantsProvider.ChatMenu);
-
-                    string input = Console.ReadLine();
-
-                    if (IsCommand(input))
-                    {
-                        MenuAction action = GetChatAction(input);
-                        switch(action)
-                        {
-                            case MenuAction.SendMessage:
-                                {
-                                    SendMessageHandler();
-                                    break;
-                                }
-                            case MenuAction.ShowUsers:
-                                {
-                                    ShowAllUsersHandler();
-                                    break;
-                                }
-                            case MenuAction.GotoMainMenu:
-                                {
-                                    GotoMainMenuHandler();
-                                    break;
-                                }
-                            
-                        }
-
-                    }
-                    else
-                    {
-                        SendMessageHandler();
-                    }
-
-                }
-
-
-                // Get menu action
-
-                Console.WriteLine($"Hi, {UserName}");
-                SendMessage();
+                };
             }
             catch (Exception ex)
             {
@@ -167,42 +70,207 @@ namespace ConsoleChatClient
             }
         }
 
-
-
-        private void SendMessageHandler()
+        public void Dispose()
         {
-            throw new NotImplementedException();
-        }
-        private void ShowAllUsersHandler()
-        {
-            throw new NotImplementedException();
-        }
-        private void GotoMainMenuHandler()
-        {
-            throw new NotImplementedException();
+            tcpClient?.Dispose();
+            rsa?.Dispose();
+            Environment.Exit(0);
         }
 
-        private MenuAction GetChatAction(string input)
+        private UserAction GetUserAction()
         {
+            switch (state)
+            {
+                case UserState.Connected:
+                {
+                    return GetLoginAction();
+                }
+                case UserState.Authorized:
+                {
+                    return GetMainMenuAction();
+                }
+                case UserState.InChat:
+                {
+                    return GetChatMenuAction();
+                }
+                default:
+                {
+                    throw new ChatException("Wrong user state");
+                }
+            }
+        }
+
+        private UserAction GetLoginAction()
+        {
+            while (true)
+            {
+                Console.WriteLine(ConstantsProvider.LoginMenuItems + Environment.NewLine);
+
+                string input = Console.ReadLine();
+                switch (input)
+                {
+                    case "1":
+                    {
+                        return UserAction.Login;
+                    }
+                    case "2":
+                    {
+                        return UserAction.Register;
+                    }
+                    case "0":
+                    {
+                        return UserAction.Exit;
+                    }
+                }
+            }
+        }
+
+        private UserAction GetMainMenuAction()
+        {
+            Console.WriteLine(Environment.NewLine + ConstantsProvider.MainMenuTitle + Environment.NewLine + ConstantsProvider.MainMenu);
+            string actionNumber = Console.ReadLine();
+
             throw new NotImplementedException();
         }
 
-        private bool IsCommand(string message)
+        private UserAction GetChatMenuAction()
         {
-            throw new NotImplementedException();
+            while (true)
+            {
+                Console.WriteLine(chatName);
+                Console.WriteLine(ConstantsProvider.ChatMenu);
+
+                string input = Console.ReadLine();
+                switch (input)
+                {
+                    case "1":
+                    {
+                        return UserAction.SendMessage;
+                    }
+                    case "2":
+                    {
+                        return UserAction.ShowUsers;
+                    }
+                    case "0":
+                    {
+                        return UserAction.GoToMainMenu;
+                    }
+                    default:
+                    {
+                        Console.WriteLine("Wrong input");
+                        break;
+                    }
+                }
+            }
+        }
+
+        private void InitializeHandlers()
+        {
+            userActionHandlers = new Dictionary<UserAction, Action>
+            {
+                { UserAction.Login, this.LoginHandler },
+                { UserAction.Register, this.RegisterHandler },
+                { UserAction.ShowChats, this.ShowAllChatsHandler },
+                { UserAction.CreateChat, this.CreateChatHandler },
+                { UserAction.EnterChat, this.EnterChatHandler },
+                { UserAction.SendMessage, this.SendMessageHandler },
+                { UserAction.ShowUsers, this.ShowAllUsersHandler },
+                { UserAction.GoToMainMenu, this.GotoMainMenuHandler },
+                { UserAction.GoToChatMenu, this.GoToChatHandler },
+                { UserAction.Exit, this.ExitHandler },
+            };
+        }
+
+        private void LoginHandler()
+        {
+            Console.WriteLine("Write your username");
+            //UserName = Console.ReadLine();
+            UserName = "test";
+            Console.WriteLine($"Test name - {UserName}");
+
+            Console.WriteLine(Environment.NewLine + "Write your password");
+
+            //string password = Console.ReadLine();
+            string password = "test";
+            Console.WriteLine($"Test password - {password}");
+
+            Message connectMessage = new Message(new Dictionary<string, string>(), new byte[0]);
+            connectMessage.Headers.Add("action", "login");
+            connectMessage.Headers.Add("user", UserName);
+            connectMessage.Headers.Add("password", GetPasswordHash(password));
+
+            string messageInJson = JsonSerializer.Serialize(connectMessage);
+
+            byte[] messageBytes = coding.GetBytes(messageInJson);
+
+            byte[] encryptedBytes = aesEncryption.Encrypt(messageBytes);
+
+            byte[] decrypted = aesEncryption.Decrypt(encryptedBytes);
+
+            string decryptedInJson = coding.Decode(decrypted);
+
+            Message decryptedMessage = JsonSerializer.Deserialize<Message>(decryptedInJson);
+
+            Console.WriteLine($"Encrypted and decrypted: {coding.Decode(aesEncryption.Decrypt(encryptedBytes))}");
+
+            tcpClient.Send(encryptedBytes);
+
+            byte[] rawResponse = tcpClient.GetMessage();
+
+            aesEncryption.SetKey(serverKey);
+            Message response = ParseMessage(rawResponse);
+
+            Console.WriteLine(JsonSerializer.Serialize(response));
+
+            if (response.Headers.ContainsKey("code") && response.Headers["code"] == "200")
+            {
+                state = UserState.Authorized;
+            };
+        }
+
+        private void RegisterHandler()
+        {
+            state = UserState.Authorized;
         }
 
         private void ShowAllChatsHandler()
         {
             Console.WriteLine("ShowAllChatsHandler");
         }
+
         private void CreateChatHandler()
         {
             Console.WriteLine("CreateChatHandler");
         }
+
         private void EnterChatHandler()
         {
             Console.WriteLine("EnterChatHandler");
+        }
+
+        private void SendMessageHandler()
+        {
+            throw new NotImplementedException();
+        }
+
+        private void ShowAllUsersHandler()
+        {
+            throw new NotImplementedException();
+        }
+
+        private void GotoMainMenuHandler()
+        {
+            throw new NotImplementedException();
+        }
+
+        private void GoToChatHandler()
+        {
+            throw new NotImplementedException();
+        }
+
+        private void ExitHandler()
+        {
+            Dispose();
         }
 
         private void KeyExchange()
@@ -231,101 +299,12 @@ namespace ConsoleChatClient
             tcpClient.Send(aesEncryption.Encrypt(coding.GetBytes(JsonSerializer.Serialize(message))));
         }
 
-        private bool LoginHandler()
-        {
-            Console.WriteLine("Write your username");
-            //UserName = Console.ReadLine();
-            UserName = "test";
-            Console.WriteLine($"Test name - {UserName}");
-
-            Console.WriteLine(Environment.NewLine + "Write your password");
-
-            //string password = Console.ReadLine();
-            string password = "test";
-            Console.WriteLine($"Test password - {password}");
-
-            Message connectMessage = new Message(new Dictionary<string, string>(), new byte[0]);
-            connectMessage.Headers.Add("action", "login");
-            connectMessage.Headers.Add("user", UserName);
-            connectMessage.Headers.Add("password", GetPasswordHash(password));
-
-            string messageInJson = JsonSerializer.Serialize(connectMessage);
-
-            byte[] messageBytes = coding.GetBytes(messageInJson);
-
-            byte[] encryptedBytes = aesEncryption.Encrypt(messageBytes);
-            
-            byte[] decrypted = aesEncryption.Decrypt(encryptedBytes);
-
-            string decryptedInJson = coding.Decode(decrypted);
-
-            Message decryptedMessage = JsonSerializer.Deserialize<Message>(decryptedInJson);
-
-            Console.WriteLine($"Encrypted and decrypted: {coding.Decode(aesEncryption.Decrypt(encryptedBytes))}");
-
-            tcpClient.Send(encryptedBytes);
-
-            byte[] rawResponse = tcpClient.GetMessage();
-
-            aesEncryption.SetKey(serverKey);
-            Message response = ParseMessage(rawResponse);
-
-            Console.WriteLine(JsonSerializer.Serialize(response));
-
-            return response.Headers.ContainsKey("code") && response.Headers["code"] == "200";
-        }
-
-        private bool RegisterHandler()
-        {
-            return true;
-        }
-
-        private bool ExitHandler()
-        {
-            Dispose();
-            return true;
-        }
-
         private void ReadServerPublicKey()
         {
             byte[] key = tcpClient.GetMessage();
             int bytesParsed;
             rsa.ImportRSAPublicKey(key, out bytesParsed);
         }
-
-        private MenuAction GetLoginAction()
-        {
-            while (true)
-            {
-                Console.WriteLine(ConstantsProvider.LoginMenuItems + Environment.NewLine);
-
-                string input = Console.ReadLine();
-                switch (input)
-                {
-                    case "1":
-                    {
-                        return MenuAction.Login;
-                    }
-                    case "2":
-                    {
-                        return MenuAction.Register;
-                    }
-                    case "0":
-                    {
-                        return MenuAction.Exit;
-                    }
-                }
-            }
-        }
-
-        public void Dispose()
-        {
-            tcpClient?.Dispose();
-            rsa?.Dispose();
-            Environment.Exit(0);
-        }
-
-
 
         private Message ParseMessage(byte[] rawMessage)
         {

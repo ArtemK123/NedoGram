@@ -1,6 +1,6 @@
 ﻿namespace ConsoleChatClient.Domain.Actions
 {
-    enum MenuAction
+    enum UserAction
     {
         Login,
         Register,
@@ -9,7 +9,8 @@
         EnterChat,
         SendMessage,
         ShowUsers,
-        GotoMainMenu,
+        GoToMainMenu,
+        GoToChatMenu,
         Exit
     }
 }

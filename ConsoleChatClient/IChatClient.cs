@@ -1,6 +1,8 @@
-﻿namespace ConsoleChatClient
+﻿using System;
+
+namespace ConsoleChatClient
 {
-    public interface IChatClient
+    public interface IChatClient : IDisposable
     {
         void Listen();
     }
