@@ -185,26 +185,33 @@ namespace ConsoleChatClient
 
         private void LoginHandler()
         {
-            Console.WriteLine("Write your username");
-            UserName = Console.ReadLine();
-
-            Console.WriteLine(Environment.NewLine + "Write your password");
-            string password = Console.ReadLine();
-
-            LoginRequest loginRequest = new LoginRequest();
-            loginRequest.Sender = UserName;
-            loginRequest.Password = GetPasswordHash(password);
-
-            SendMessageAesEncrypted(loginRequest, serverKey);
-
-            byte[] rawResponse = tcpClient.GetMessage();
-            Response response = ParseMessage<Response>(rawResponse);
-
-            if (response.Code == StatusCode.Ok)
+            while (true)
             {
-                state = UserState.Authorized;
-                Console.WriteLine(ConstantsStore.SuccessfulSignIn);
-            };
+                Console.WriteLine("Write your username");
+                UserName = Console.ReadLine();
+
+                Console.WriteLine(Environment.NewLine + "Write your password");
+                string password = Console.ReadLine();
+
+                LoginRequest loginRequest = new LoginRequest();
+                loginRequest.Sender = UserName;
+                loginRequest.Password = GetPasswordHash(password);
+
+                SendMessageAesEncrypted(loginRequest, serverKey);
+
+                byte[] rawResponse = tcpClient.GetMessage();
+                Response response = ParseMessage<Response>(rawResponse);
+
+                if (response.Code == StatusCode.Ok)
+                {
+                    state = UserState.Authorized;
+                    Console.WriteLine(ConstantsStore.SuccessfulSignIn);
+                    return;
+                }
+
+                ErrorResponse errorResponse = ParseMessage<ErrorResponse>(rawResponse);
+                Console.WriteLine($"Error while signing in - {errorResponse.Message}");
+            }
         }
 
         private T ParseMessage<T>(byte[] rawMessage)
@@ -279,6 +286,11 @@ namespace ConsoleChatClient
             if (response.Code == StatusCode.Ok)
             {
                 state = UserState.Connected;
+            }
+            else
+            {
+                ErrorResponse responseWithError = ParseMessage<ErrorResponse>(rawResponse);
+                Console.WriteLine(responseWithError.Message);
             }
         }
 

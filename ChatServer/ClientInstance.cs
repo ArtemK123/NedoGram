@@ -43,7 +43,7 @@ namespace ChatServer
             user = new User();
             RequestHandlers = new Dictionary<ClientAction, Action<Request>>()
             {
-                { ClientAction.Login, this.LoginHandler }
+                { ClientAction.Login, LoginHandler }
             };
         }
         public void Process()
@@ -64,58 +64,10 @@ namespace ChatServer
                 {
                     byte[] rawMessage = tcpClient.GetMessage();
 
-                    Message message = ParseMessage(rawMessage);
+                    Request request = ParseMessage<Request>(rawMessage);
 
-                    Console.WriteLine(JsonSerializer.Serialize(message));
-
-                     
-
-
-
-
-                    //switch (message.Headers["action"].ToLower())
-                    //{
-                    //    case "login":
-                    //    {
-                    //        LoginHandler(message);
-                    //        break;
-                    //    }
-                    //    case "register":
-                    //    {
-                    //        RegisterHandler(message);
-                    //        break;
-                    //    }
-                    //    case "createChat":
-                    //    {
-                    //        CreateChatHandler(message);
-                    //        break;
-                    //    }
-                    //    case "getChats":
-                    //    {
-                    //        GetAllChatsHandler();
-                    //        break;
-                    //    }
-                    //    case "enterChat":
-                    //    {
-                    //        EnterChatHandler(message);
-                    //        break;
-                    //    }
-                    //    case "exitChat":
-                    //    {
-                    //        ExitChatHandler(message);
-                    //        break;
-                    //    }
-                    //    case "message":
-                    //    {
-                    //        MessageHandler(message, rawMessage);
-                    //        break;
-                    //    }
-                    //    default:
-                    //    {
-                    //        InvalidActionHandler(message);
-                    //        break;
-                    //    }
-                    //}
+                    Console.WriteLine($"{request.Sender} - {request.Action}");
+                    RequestHandlers[request.Action].Invoke(request);
                 }
             }
             catch (IOException)
@@ -158,13 +110,13 @@ namespace ChatServer
             //SendMessageWithServerAesEncryption(response);
         }
 
-        internal Message ParseMessage(byte[] rawMessage)
+        internal T ParseMessage<T>(byte[] rawMessage) where T : Message
         {
             byte[] decryptedConnectionMessage = aesEncryption.Decrypt(rawMessage);
 
             string connectionMessageInJson = coding.Decode(decryptedConnectionMessage);
 
-            return JsonSerializer.Deserialize<Message>(connectionMessageInJson);
+            return JsonSerializer.Deserialize<T>(connectionMessageInJson);
         }
 
         internal void SendMessageBytes(byte[] message)
@@ -244,7 +196,7 @@ namespace ChatServer
             }
             else
             {
-                SendMessageWithServerAesEncryption(new ErrorResponse(StatusCode.Ok, "Wrong email or password"));
+                SendMessageWithServerAesEncryption(new ErrorResponse(StatusCode.ClientError, "Wrong email or password"));
                 Console.WriteLine($"{request.Sender} - unsuccessful try to sign in");
             }
         }
