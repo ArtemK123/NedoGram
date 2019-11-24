@@ -6,7 +6,7 @@ namespace ChatCommon.Messages.Requests
     {
         public LoginRequest()
         {
-            Action = UserAction.Login;
+            Action = ClientAction.Login;
         }
 
         public string Password { get; set; }

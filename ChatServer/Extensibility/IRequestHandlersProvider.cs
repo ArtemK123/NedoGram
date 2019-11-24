@@ -7,6 +7,6 @@ namespace ChatServer.Extensibility
 {
     internal interface IRequestHandlersProvider
     {
-        Dictionary<UserAction, Func<Response>> GetHandlers();
+        Dictionary<ClientAction, Func<Response>> GetHandlers();
     }
 }

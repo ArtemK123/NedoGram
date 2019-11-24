@@ -8,9 +8,9 @@ namespace ChatServer.Service.Providers
 {
     class RequestHandlersProvider : IRequestHandlersProvider
     {
-        public Dictionary<UserAction, Func<Response>> GetHandlers()
+        public Dictionary<ClientAction, Func<Response>> GetHandlers()
         {
-            return new Dictionary<UserAction, Func<Response>>()
+            return new Dictionary<ClientAction, Func<Response>>()
             {
 
             }

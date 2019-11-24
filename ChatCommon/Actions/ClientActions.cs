@@ -1,6 +1,6 @@
 ﻿namespace ChatCommon.Actions
 {
-    public enum UserAction
+    public enum ClientAction
     {
         Login,
         Register,

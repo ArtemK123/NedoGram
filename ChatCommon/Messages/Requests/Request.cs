@@ -8,12 +8,12 @@ namespace ChatCommon.Messages.Requests
         {
         }
 
-        protected Request(string sender, UserAction action)
+        protected Request(string sender, ClientAction action)
             : base(sender)
         {
             Action = action;
         }
 
-        public UserAction Action { get; protected set; }
+        public ClientAction Action { get; protected set; }
     }
 }

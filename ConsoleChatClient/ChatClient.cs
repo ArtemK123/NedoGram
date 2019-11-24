@@ -28,7 +28,7 @@ namespace ConsoleChatClient
         private UserState state = UserState.Offline;
         private string chatName = null;
 
-        private Dictionary<UserAction, Action> userActionHandlers;
+        private Dictionary<ClientAction, Action> userActionHandlers;
 
         public ChatClient(
             ITcpWrapper tcpClient,
@@ -48,8 +48,6 @@ namespace ConsoleChatClient
             { 
                 KeyExchange();
 
-                state = UserState.Connected;
-
                 Console.WriteLine(ConstantsStore.WelcomeMessage);
 
                 Thread receiveThread = new Thread(ReceiveMessage);
@@ -57,7 +55,7 @@ namespace ConsoleChatClient
 
                 while (state != UserState.Offline)
                 {
-                    UserAction action = GetUserAction();
+                    ClientAction action = GetUserAction();
                     userActionHandlers[action].Invoke();
 
                 };
@@ -80,7 +78,7 @@ namespace ConsoleChatClient
             Environment.Exit(0);
         }
 
-        private UserAction GetUserAction()
+        private ClientAction GetUserAction()
         {
             switch (state)
             {
@@ -103,7 +101,7 @@ namespace ConsoleChatClient
             }
         }
 
-        private UserAction GetLoginAction()
+        private ClientAction GetLoginAction()
         {
             while (true)
             {
@@ -114,21 +112,21 @@ namespace ConsoleChatClient
                 {
                     case "1":
                     {
-                        return UserAction.Login;
+                        return ClientAction.Login;
                     }
                     case "2":
                     {
-                        return UserAction.Register;
+                        return ClientAction.Register;
                     }
                     case "0":
                     {
-                        return UserAction.Exit;
+                        return ClientAction.Exit;
                     }
                 }
             }
         }
 
-        private UserAction GetMainMenuAction()
+        private ClientAction GetMainMenuAction()
         {
             Console.WriteLine(Environment.NewLine + ConstantsStore.MainMenuTitle + Environment.NewLine + ConstantsStore.MainMenu);
             string actionNumber = Console.ReadLine();
@@ -136,7 +134,7 @@ namespace ConsoleChatClient
             throw new NotImplementedException();
         }
 
-        private UserAction GetChatMenuAction()
+        private ClientAction GetChatMenuAction()
         {
             while (true)
             {
@@ -148,15 +146,15 @@ namespace ConsoleChatClient
                 {
                     case "1":
                     {
-                        return UserAction.SendMessage;
+                        return ClientAction.SendMessage;
                     }
                     case "2":
                     {
-                        return UserAction.ShowUsers;
+                        return ClientAction.ShowUsers;
                     }
                     case "0":
                     {
-                        return UserAction.GoToMainMenu;
+                        return ClientAction.GoToMainMenu;
                     }
                     default:
                     {
@@ -169,18 +167,18 @@ namespace ConsoleChatClient
 
         private void InitializeHandlers()
         {
-            userActionHandlers = new Dictionary<UserAction, Action>
+            userActionHandlers = new Dictionary<ClientAction, Action>
             {
-                { UserAction.Login, this.LoginHandler },
-                { UserAction.Register, this.RegisterHandler },
-                { UserAction.ShowChats, this.ShowAllChatsHandler },
-                { UserAction.CreateChat, this.CreateChatHandler },
-                { UserAction.EnterChat, this.EnterChatHandler },
-                { UserAction.SendMessage, this.SendMessageHandler },
-                { UserAction.ShowUsers, this.ShowAllUsersHandler },
-                { UserAction.GoToMainMenu, this.GotoMainMenuHandler },
-                { UserAction.GoToChatMenu, this.GoToChatHandler },
-                { UserAction.Exit, this.ExitHandler },
+                { ClientAction.Login, this.LoginHandler },
+                { ClientAction.Register, this.RegisterHandler },
+                { ClientAction.ShowChats, this.ShowAllChatsHandler },
+                { ClientAction.CreateChat, this.CreateChatHandler },
+                { ClientAction.EnterChat, this.EnterChatHandler },
+                { ClientAction.SendMessage, this.SendMessageHandler },
+                { ClientAction.ShowUsers, this.ShowAllUsersHandler },
+                { ClientAction.GoToMainMenu, this.GotoMainMenuHandler },
+                { ClientAction.GoToChatMenu, this.GoToChatHandler },
+                { ClientAction.Exit, this.ExitHandler },
             };
         }
 
@@ -263,22 +261,24 @@ namespace ConsoleChatClient
 
         private void KeyExchange()
         {
+            //todo: add handling of an unsuccessful key exchange
+
             // read server credentials
             ReadServerPublicKey();
 
             // send aes key and iv to the server
-            Message messageWithKey = new Message();
+            Message keyExchangeMessage = new AesKeyExchangeMessage(aesEncryption.GetKey(), aesEncryption.GetIV(), UserName);
 
-            messageWithKey.Headers.Add("action", "connect");
-            messageWithKey.Headers.Add("content-type", "bytes/key");
-            messageWithKey.Headers.Add("algorithm", "aes");
-            messageWithKey.Headers.Add("iv", Convert.ToBase64String(aesEncryption.GetIv()));
+            tcpClient.Send(rsa.Encrypt(coding.GetBytes(JsonSerializer.Serialize(keyExchangeMessage)), false));
 
-            serverKey = aesEncryption.GetKey();
+            byte[] rawResponse = tcpClient.GetMessage();
 
-            messageWithKey.Body = serverKey;
+            Response response = ParseMessage<Response>(rawResponse);
 
-            tcpClient.Send(rsa.Encrypt(coding.GetBytes(JsonSerializer.Serialize(messageWithKey)), false));
+            if (response.StatusCode == 200)
+            {
+                state = UserState.Connected;
+            }
         }
 
         private void SendMessageAesEncrypted(Message message, byte[] key)

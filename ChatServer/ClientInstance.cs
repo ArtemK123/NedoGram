@@ -5,6 +5,7 @@ using System.Text.Json;
 using System.Linq;
 using ChatCommon;
 using ChatCommon.Actions;
+using ChatCommon.Constants;
 using ChatCommon.Encryption;
 using ChatCommon.Extensibility;
 using ChatCommon.Messages;
@@ -31,7 +32,7 @@ namespace ChatServer
 
         private byte[] clientAesKey;
 
-        internal readonly Dictionary<UserAction, Action<Request>> RequestHandlers;
+        internal readonly Dictionary<ClientAction, Action<Request>> RequestHandlers;
 
         public ClientInstance(ITcpWrapper tcpClient, ServerInstance serverInstance, ICoding coding)
         {
@@ -41,9 +42,9 @@ namespace ChatServer
             this.coding = coding;
             aesEncryption = new AesEncryption();
             user = new User();
-            RequestHandlers = new Dictionary<UserAction, Action<Request>>()
+            RequestHandlers = new Dictionary<ClientAction, Action<Request>>()
             {
-                { UserAction.Login, this.LoginHandler },
+                { ClientAction.Login, this.LoginHandler },
 
             }
         }
@@ -187,33 +188,38 @@ namespace ChatServer
 
         private bool KeyExchange()
         {
-            // send to the client server public key [and other credentials]
-
-            tcpClient.Send(server.rsa.ExportRSAPublicKey());
-
-            // get key for symmetric encryption from client
-
-            byte[] encryptedMessageWithKey = tcpClient.GetMessage();
-
-            try
+            while (true)
             {
-                byte[] messageWithKeyBytes = server.rsa.Decrypt(encryptedMessageWithKey, false);
-                string messageWithKeyInJson = coding.Decode(messageWithKeyBytes);
-                Message messageWithKey = JsonSerializer.Deserialize<Message>(messageWithKeyInJson);
+                // send to the client server public key [and other credentials]
 
-                aesEncryption.SetKey(messageWithKey.Body);
-                aesEncryption.SetIv(Convert.FromBase64String(messageWithKey.Headers["iv"]));
+                tcpClient.Send(server.rsa.ExportRSAPublicKey());
 
-                clientAesKey = messageWithKey.Body;
+                // get key for symmetric encryption from client
+
+                byte[] encryptedMessageWithKey = tcpClient.GetMessage();
+
+
+                try
+                {
+                    byte[] messageWithKeyBytes = server.rsa.Decrypt(encryptedMessageWithKey, false);
+                    string messageWithKeyInJson = coding.Decode(messageWithKeyBytes);
+                    AesKeyExchangeMessage aesKeyExchangeMessage = JsonSerializer.Deserialize<AesKeyExchangeMessage>(messageWithKeyInJson);
+
+                    aesEncryption.SetKey(aesKeyExchangeMessage.Key);
+                    aesEncryption.SetIV(aesKeyExchangeMessage.IV);
+
+                    clientAesKey = aesEncryption.GetKey();
+
+                    Response response = new Response { Code = StatusCode.Ok };
+
+                    SendMessageWithServerAesEncryption(response);
+                    user.State = UserState.Connected;
+                }
+                catch (Exception exception)
+                {
+                    Console.WriteLine(exception.Message);
+                }
             }
-            catch (Exception)
-            {
-                // todo: return meaningful error descriptions
-
-                return false;
-            }
-
-            return true;
         }
 
         protected internal void Close()
