@@ -1,6 +1,5 @@
 ﻿using ChatCommon;
 using ChatServer.Extensibility;
-using System;
 
 namespace ChatServer.Domain
 {
@@ -14,9 +13,16 @@ namespace ChatServer.Domain
 
         public IChat CurrentChat { get; set; }
 
-        public User(string name = "Unknown user")
+        public User(string name, string password, UserState state = UserState.Offline, IChat currentChat = null)
         {
             Name = name;
+            Password = password;
+            State = state;
+            CurrentChat = currentChat;
+        }
+
+        public User()
+        {
             State = UserState.Offline;
         }
     }

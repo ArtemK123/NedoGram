@@ -209,22 +209,45 @@ namespace ConsoleChatClient
                     return;
                 }
 
-                ErrorResponse errorResponse = ParseMessage<ErrorResponse>(rawResponse);
-                Console.WriteLine($"Error while signing in - {errorResponse.Message}");
+                Console.WriteLine($"Error while signing in - {response.Message}");
             }
-        }
-
-        private T ParseMessage<T>(byte[] rawMessage)
-        { 
-            aesEncryption.SetKey(serverKey);
-            byte[] decryptedConnectionMessage = aesEncryption.Decrypt(rawMessage);
-            string connectionMessageInJson = coding.Decode(decryptedConnectionMessage);
-            return JsonSerializer.Deserialize<T>(connectionMessageInJson);
         }
 
         private void RegisterHandler()
         {
-            state = UserState.Authorized;
+            Console.WriteLine("Enter your nickname");
+
+            string userName = Console.ReadLine();
+
+            Console.WriteLine(Environment.NewLine + "Write your password");
+
+            string password = Console.ReadLine();
+
+            Console.WriteLine(Environment.NewLine + "Write your password again");
+
+            string passwordAgain = Console.ReadLine();
+
+            if (password != passwordAgain)
+            {
+                Console.WriteLine("Passwords don`t match");
+                return;
+            }
+
+            var registerRequest = new RegisterRequest(userName, GetPasswordHash(password));
+
+            SendMessageAesEncrypted(registerRequest, serverKey);
+
+            byte[] rawResponse = tcpClient.GetMessage();
+            Response response = ParseMessage<Response>(rawResponse);
+            if (response.Code == StatusCode.Ok)
+            {
+                UserName = userName;
+                state = UserState.Authorized;
+                Console.WriteLine("Signed up successfully");
+                return;
+            }
+
+            Console.Write($"Problems were occured while signing up - {response.Message}");
         }
 
         private void ShowAllChatsHandler()
@@ -289,9 +312,16 @@ namespace ConsoleChatClient
             }
             else
             {
-                ErrorResponse responseWithError = ParseMessage<ErrorResponse>(rawResponse);
-                Console.WriteLine(responseWithError.Message);
+                Console.WriteLine(response.Message);
             }
+        }
+
+        private T ParseMessage<T>(byte[] rawMessage)
+        {
+            aesEncryption.SetKey(serverKey);
+            byte[] decryptedConnectionMessage = aesEncryption.Decrypt(rawMessage);
+            string connectionMessageInJson = coding.Decode(decryptedConnectionMessage);
+            return JsonSerializer.Deserialize<T>(connectionMessageInJson);
         }
 
         private void SendMessageAesEncrypted(Message message, byte[] key)
@@ -307,14 +337,6 @@ namespace ConsoleChatClient
             rsa.ImportRSAPublicKey(key, out bytesParsed);
         }
 
-        private Message ParseMessage(byte[] rawMessage)
-        {
-            byte[] decryptedConnectionMessage = aesEncryption.Decrypt(rawMessage);
-
-            string connectionMessageInJson = coding.Decode(decryptedConnectionMessage);
-
-            return JsonSerializer.Deserialize<Message>(connectionMessageInJson);
-        }
 
         private string GetPasswordHash(string password)
         {
@@ -324,29 +346,6 @@ namespace ConsoleChatClient
             }
         }
 
-        private void SendMessage()
-        {
-            Console.WriteLine("Write your message: ");
-
-            while (true)
-            {
-                string input = Console.ReadLine();
-
-                var headers = new Dictionary<string, string>();
-                headers.Add("action", "connect");
-                headers.Add("content-type", "json/aes");
-                headers.Add("sender", UserName);
-
-                //Message messageObj = new Message(headers, coding.GetBytes(input));
-
-                //string messageInJson = JsonSerializer.Serialize(messageObj);
-
-                //byte[] encryptedData = aesEncryption.Encrypt(coding.GetBytes(messageInJson));
-                //Console.WriteLine($"Encrypted and derypted: {aesEncryption.Decrypt(encryptedData)}");
-
-                //tcpClient.Send(encryptedData);
-            }
-        }
 
         private void ReceiveMessage()
         {

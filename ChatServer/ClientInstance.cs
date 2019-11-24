@@ -147,13 +147,28 @@ namespace ChatServer
             }
             else
             {
-                SendMessageAesEncrypted(new ErrorResponse(StatusCode.ClientError, "Wrong email or password"), clientAesKey);
+                SendMessageAesEncrypted(new Response(StatusCode.Error, "Wrong email or password"), clientAesKey);
                 Console.WriteLine($"{request.Sender} - unsuccessful try to sign in");
             }
         }
 
         private void RegisterHandler(Request request)
         {
+            try
+            {
+                RegisterRequest registerRequest = request as RegisterRequest;
+                User newUser = new User(registerRequest.Sender, registerRequest.Password, UserState.Authorized);
+                server.UserRepository.Add(newUser);
+
+                SendMessageAesEncrypted(new Response(StatusCode.Ok), clientAesKey);
+                user = newUser;
+                Console.WriteLine($"{user.Name} signed up successfully.");
+            }
+            catch (Exception exception)
+            {
+                Console.WriteLine($"{user.Name} - error occured while signing up: {exception}");
+                SendMessageAesEncrypted(new Response(StatusCode.Error, "Error while signing up"), clientAesKey);
+            }
         }
 
         private void CreateChatHandler(Message message)
@@ -209,9 +224,9 @@ namespace ChatServer
             //SendSuccessResponse();
         }
 
-        private T ParseMessage<T>(byte[] rawMessage, byte[] AesKey) where T : Message
+        private T ParseMessage<T>(byte[] rawMessage, byte[] aesKey) where T : Message
         {
-            aesEncryption.SetKey(AesKey);
+            aesEncryption.SetKey(aesKey);
 
             byte[] decryptedConnectionMessage = aesEncryption.Decrypt(rawMessage);
 
@@ -220,9 +235,9 @@ namespace ChatServer
             return JsonSerializer.Deserialize<T>(connectionMessageInJson);
         }
 
-        private void SendMessageAesEncrypted<T>(T message, byte[] AesKey) where T : Message
+        private void SendMessageAesEncrypted<T>(T message, byte[] aesKey) where T : Message
         {
-            aesEncryption.SetKey(AesKey);
+            aesEncryption.SetKey(aesKey);
             tcpClient.Send(aesEncryption.Encrypt(coding.GetBytes(JsonSerializer.Serialize(message))));
         }
     }
