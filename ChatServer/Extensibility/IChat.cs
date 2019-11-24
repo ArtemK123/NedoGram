@@ -2,6 +2,7 @@
 using ChatServer.Domain;
 using System;
 using System.Collections.Generic;
+using ChatCommon.Messages;
 
 namespace ChatServer.Extensibility
 {

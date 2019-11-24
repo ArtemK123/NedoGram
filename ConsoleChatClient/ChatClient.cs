@@ -4,11 +4,14 @@ using System.Security.Cryptography;
 using System.Text.Json;
 using System.Threading;
 using ChatCommon;
+using ChatCommon.Actions;
 using ChatCommon.Encryption;
 using ChatCommon.Exceptions;
 using ChatCommon.Extensibility;
+using ChatCommon.Messages;
+using ChatCommon.Messages.Requests;
+using ChatCommon.Messages.Responses;
 using ConsoleChatClient.Domain;
-using ConsoleChatClient.Domain.Actions;
 
 namespace ConsoleChatClient
 {
@@ -47,7 +50,7 @@ namespace ConsoleChatClient
 
                 state = UserState.Connected;
 
-                Console.WriteLine(ConstantsProvider.WelcomeMessage);
+                Console.WriteLine(ConstantsStore.WelcomeMessage);
 
                 Thread receiveThread = new Thread(ReceiveMessage);
                 receiveThread.Start();
@@ -104,7 +107,7 @@ namespace ConsoleChatClient
         {
             while (true)
             {
-                Console.WriteLine(ConstantsProvider.LoginMenuItems + Environment.NewLine);
+                Console.WriteLine(ConstantsStore.LoginMenuItems + Environment.NewLine);
 
                 string input = Console.ReadLine();
                 switch (input)
@@ -127,7 +130,7 @@ namespace ConsoleChatClient
 
         private UserAction GetMainMenuAction()
         {
-            Console.WriteLine(Environment.NewLine + ConstantsProvider.MainMenuTitle + Environment.NewLine + ConstantsProvider.MainMenu);
+            Console.WriteLine(Environment.NewLine + ConstantsStore.MainMenuTitle + Environment.NewLine + ConstantsStore.MainMenu);
             string actionNumber = Console.ReadLine();
 
             throw new NotImplementedException();
@@ -138,7 +141,7 @@ namespace ConsoleChatClient
             while (true)
             {
                 Console.WriteLine(chatName);
-                Console.WriteLine(ConstantsProvider.ChatMenu);
+                Console.WriteLine(ConstantsStore.ChatMenu);
 
                 string input = Console.ReadLine();
                 switch (input)
@@ -184,48 +187,33 @@ namespace ConsoleChatClient
         private void LoginHandler()
         {
             Console.WriteLine("Write your username");
-            //UserName = Console.ReadLine();
-            UserName = "test";
-            Console.WriteLine($"Test name - {UserName}");
+            UserName = Console.ReadLine();
 
             Console.WriteLine(Environment.NewLine + "Write your password");
+            string password = Console.ReadLine();
 
-            //string password = Console.ReadLine();
-            string password = "test";
-            Console.WriteLine($"Test password - {password}");
+            LoginRequest loginRequest = new LoginRequest();
+            loginRequest.Sender = UserName;
+            loginRequest.Password = GetPasswordHash(password);
 
-            Message connectMessage = new Message(new Dictionary<string, string>(), new byte[0]);
-            connectMessage.Headers.Add("action", "login");
-            connectMessage.Headers.Add("user", UserName);
-            connectMessage.Headers.Add("password", GetPasswordHash(password));
-
-            string messageInJson = JsonSerializer.Serialize(connectMessage);
-
-            byte[] messageBytes = coding.GetBytes(messageInJson);
-
-            byte[] encryptedBytes = aesEncryption.Encrypt(messageBytes);
-
-            byte[] decrypted = aesEncryption.Decrypt(encryptedBytes);
-
-            string decryptedInJson = coding.Decode(decrypted);
-
-            Message decryptedMessage = JsonSerializer.Deserialize<Message>(decryptedInJson);
-
-            Console.WriteLine($"Encrypted and decrypted: {coding.Decode(aesEncryption.Decrypt(encryptedBytes))}");
-
-            tcpClient.Send(encryptedBytes);
+            SendMessageAesEncrypted(loginRequest, serverKey);
 
             byte[] rawResponse = tcpClient.GetMessage();
+            LoginResponse response = ParseMessage<LoginResponse>(rawResponse);
 
-            aesEncryption.SetKey(serverKey);
-            Message response = ParseMessage(rawResponse);
-
-            Console.WriteLine(JsonSerializer.Serialize(response));
-
-            if (response.Headers.ContainsKey("code") && response.Headers["code"] == "200")
+            if (response.StatusCode == 200)
             {
                 state = UserState.Authorized;
+                Console.WriteLine(ConstantsStore.SuccessfulSignIn);
             };
+        }
+
+        private T ParseMessage<T>(byte[] rawMessage)
+        { 
+            aesEncryption.SetKey(serverKey);
+            byte[] decryptedConnectionMessage = aesEncryption.Decrypt(rawMessage);
+            string connectionMessageInJson = coding.Decode(decryptedConnectionMessage);
+            return JsonSerializer.Deserialize<T>(connectionMessageInJson);
         }
 
         private void RegisterHandler()

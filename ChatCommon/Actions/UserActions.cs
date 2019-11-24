@@ -1,6 +1,6 @@
-﻿namespace ConsoleChatClient.Domain.Actions
+﻿namespace ChatCommon.Actions
 {
-    enum UserAction
+    public enum UserAction
     {
         Login,
         Register,

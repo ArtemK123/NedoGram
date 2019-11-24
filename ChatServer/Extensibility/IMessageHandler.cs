@@ -1,5 +1,6 @@
 ﻿using ChatCommon;
 using System;
+using ChatCommon.Messages;
 
 namespace ChatServer.Extensibility
 {

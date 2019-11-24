@@ -2,7 +2,7 @@
 
 namespace ConsoleChatClient.Domain
 {
-    internal class ConstantsProvider
+    internal class ConstantsStore
     {
         public static readonly string ProgramName = "Nedo Gram v1.0";
 
@@ -27,5 +27,9 @@ namespace ConsoleChatClient.Domain
             "1. Send message" + Environment.NewLine +
             "2. Show all users in the chat" + Environment.NewLine +
             "0. Go to the main menu";
+
+
+
+        public static readonly string SuccessfulSignIn = "You signed in successfully. Good chatting :)";
     }
 }

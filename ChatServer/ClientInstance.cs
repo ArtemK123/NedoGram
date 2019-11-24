@@ -4,8 +4,11 @@ using System.IO;
 using System.Text.Json;
 using System.Linq;
 using ChatCommon;
+using ChatCommon.Actions;
 using ChatCommon.Encryption;
 using ChatCommon.Extensibility;
+using ChatCommon.Messages;
+using ChatCommon.Messages.Responses;
 using ChatServer.Domain;
 using ChatServer.Extensibility;
 
@@ -63,6 +66,11 @@ namespace ChatServer
                     Message message = ParseMessage(rawMessage);
 
                     Console.WriteLine(JsonSerializer.Serialize(message));
+
+                     
+
+
+
 
                     switch (message.Headers["action"].ToLower())
                     {
