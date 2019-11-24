@@ -12,7 +12,6 @@ using ChatCommon.Messages;
 using ChatCommon.Messages.Requests;
 using ChatCommon.Messages.Responses;
 using ChatServer.Domain;
-using ChatServer.Extensibility;
 
 namespace ChatServer
 {
@@ -53,17 +52,11 @@ namespace ChatServer
             {
                 Console.WriteLine($"New connection - {Id}");
 
-                bool successfulExchange = false;
-
-                do
-                {
-                    Console.WriteLine($"Key exchange");
-                    successfulExchange = KeyExchange();
-                } while (!successfulExchange);
+                Console.WriteLine($"Key exchange");
+                KeyExchange();
 
                 Console.WriteLine(
                     $"Key exchanged successfully. Connection configured. Id-{Id}; Key-{Convert.ToBase64String(aesEncryption.GetKey())}");
-                user.State = UserState.Connected;
 
                 // handle requests from client
 
@@ -185,7 +178,7 @@ namespace ChatServer
             tcpClient.Send(aesEncryption.Encrypt(coding.GetBytes(JsonSerializer.Serialize(message))));
         }
 
-        private bool KeyExchange()
+        private void KeyExchange()
         {
             while (true)
             {
@@ -196,7 +189,6 @@ namespace ChatServer
                 // get key for symmetric encryption from client
 
                 byte[] encryptedMessageWithKey = tcpClient.GetMessage();
-
 
                 try
                 {
@@ -213,6 +205,7 @@ namespace ChatServer
 
                     SendMessageWithServerAesEncryption(response);
                     user.State = UserState.Connected;
+                    return;
                 }
                 catch (Exception exception)
                 {

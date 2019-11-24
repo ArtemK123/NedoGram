@@ -268,7 +268,7 @@ namespace ConsoleChatClient
             ReadServerPublicKey();
 
             // send aes key and iv to the server
-            Message keyExchangeMessage = new AesKeyExchangeMessage(aesEncryption.GetKey(), aesEncryption.GetIV(), UserName);
+            AesKeyExchangeMessage keyExchangeMessage = new AesKeyExchangeMessage(aesEncryption.GetKey(), aesEncryption.GetIV(), UserName);
 
             tcpClient.Send(rsa.Encrypt(coding.GetBytes(JsonSerializer.Serialize(keyExchangeMessage)), false));
 

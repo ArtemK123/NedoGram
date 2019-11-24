@@ -2,7 +2,8 @@
 {
     public class AesKeyExchangeMessage : Message
     {
-        public AesKeyExchangeMessage(byte[] key, byte[] iv, string sender)
+        public AesKeyExchangeMessage(byte[] key, byte[] iv, string sender) 
+            : base(sender)
         {
             Key = key;
             IV = iv;
