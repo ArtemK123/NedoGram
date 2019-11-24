@@ -5,6 +5,7 @@ using System.Text.Json;
 using System.Threading;
 using ChatCommon;
 using ChatCommon.Actions;
+using ChatCommon.Constants;
 using ChatCommon.Encryption;
 using ChatCommon.Exceptions;
 using ChatCommon.Extensibility;
@@ -197,9 +198,9 @@ namespace ConsoleChatClient
             SendMessageAesEncrypted(loginRequest, serverKey);
 
             byte[] rawResponse = tcpClient.GetMessage();
-            LoginResponse response = ParseMessage<LoginResponse>(rawResponse);
+            Response response = ParseMessage<Response>(rawResponse);
 
-            if (response.StatusCode == 200)
+            if (response.Code == StatusCode.Ok)
             {
                 state = UserState.Authorized;
                 Console.WriteLine(ConstantsStore.SuccessfulSignIn);
@@ -275,7 +276,7 @@ namespace ConsoleChatClient
 
             Response response = ParseMessage<Response>(rawResponse);
 
-            if (response.StatusCode == 200)
+            if (response.Code == StatusCode.Ok)
             {
                 state = UserState.Connected;
             }
@@ -324,14 +325,14 @@ namespace ConsoleChatClient
                 headers.Add("content-type", "json/aes");
                 headers.Add("sender", UserName);
 
-                Message messageObj = new Message(headers, coding.GetBytes(input));
+                //Message messageObj = new Message(headers, coding.GetBytes(input));
 
-                string messageInJson = JsonSerializer.Serialize(messageObj);
+                //string messageInJson = JsonSerializer.Serialize(messageObj);
 
-                byte[] encryptedData = aesEncryption.Encrypt(coding.GetBytes(messageInJson));
-                Console.WriteLine($"Encrypted and derypted: {aesEncryption.Decrypt(encryptedData)}");
+                //byte[] encryptedData = aesEncryption.Encrypt(coding.GetBytes(messageInJson));
+                //Console.WriteLine($"Encrypted and derypted: {aesEncryption.Decrypt(encryptedData)}");
 
-                tcpClient.Send(encryptedData);
+                //tcpClient.Send(encryptedData);
             }
         }
 
@@ -349,7 +350,7 @@ namespace ConsoleChatClient
 
                     Message message = JsonSerializer.Deserialize<Message>(messageInJson);
 
-                    Console.WriteLine($"{message.Headers["sender"]}: {message.Body}");
+                    //Console.WriteLine($"{message.Headers["sender"]}: {message.Body}");
                 }
                 catch(Exception exception)
                 {

@@ -44,9 +44,8 @@ namespace ChatServer
             user = new User();
             RequestHandlers = new Dictionary<ClientAction, Action<Request>>()
             {
-                { ClientAction.Login, this.LoginHandler },
-
-            }
+                { ClientAction.Login, this.LoginHandler }
+            };
         }
         public void Process()
         {
@@ -81,49 +80,49 @@ namespace ChatServer
 
 
 
-                    switch (message.Headers["action"].ToLower())
-                    {
-                        case "login":
-                        {
-                            LoginHandler(message);
-                            break;
-                        }
-                        case "register":
-                        {
-                            RegisterHandler(message);
-                            break;
-                        }
-                        case "createChat":
-                        {
-                            CreateChatHandler(message);
-                            break;
-                        }
-                        case "getChats":
-                        {
-                            GetAllChatsHandler();
-                            break;
-                        }
-                        case "enterChat":
-                        {
-                            EnterChatHandler(message);
-                            break;
-                        }
-                        case "exitChat":
-                        {
-                            ExitChatHandler(message);
-                            break;
-                        }
-                        case "message":
-                        {
-                            MessageHandler(message, rawMessage);
-                            break;
-                        }
-                        default:
-                        {
-                            InvalidActionHandler(message);
-                            break;
-                        }
-                    }
+                    //switch (message.Headers["action"].ToLower())
+                    //{
+                    //    case "login":
+                    //    {
+                    //        LoginHandler(message);
+                    //        break;
+                    //    }
+                    //    case "register":
+                    //    {
+                    //        RegisterHandler(message);
+                    //        break;
+                    //    }
+                    //    case "createChat":
+                    //    {
+                    //        CreateChatHandler(message);
+                    //        break;
+                    //    }
+                    //    case "getChats":
+                    //    {
+                    //        GetAllChatsHandler();
+                    //        break;
+                    //    }
+                    //    case "enterChat":
+                    //    {
+                    //        EnterChatHandler(message);
+                    //        break;
+                    //    }
+                    //    case "exitChat":
+                    //    {
+                    //        ExitChatHandler(message);
+                    //        break;
+                    //    }
+                    //    case "message":
+                    //    {
+                    //        MessageHandler(message, rawMessage);
+                    //        break;
+                    //    }
+                    //    default:
+                    //    {
+                    //        InvalidActionHandler(message);
+                    //        break;
+                    //    }
+                    //}
                 }
             }
             catch (IOException)
@@ -158,12 +157,12 @@ namespace ChatServer
 
         internal void SendErrorResponse()
         {
-            Message response = new Message();
-            response.Headers.Add("code", "500");
-            response.Headers.Add("reason", "default error from server");
-            response.Headers.Add("result", "unsuccessful");
-            response.Headers.Add("sender", "server");
-            SendMessageWithServerAesEncryption(response);
+            //Message response = new Message();
+            //response.Headers.Add("code", "500");
+            //response.Headers.Add("reason", "default error from server");
+            //response.Headers.Add("result", "unsuccessful");
+            //response.Headers.Add("sender", "server");
+            //SendMessageWithServerAesEncryption(response);
         }
 
         internal Message ParseMessage(byte[] rawMessage)
@@ -248,12 +247,12 @@ namespace ChatServer
 
             if (successful)
             {
-                response.StatusCode = 200;
+                response.Code = StatusCode.Ok;
                 server.UserRepository.UpdateState(user.Name, UserState.Authorized);
             }
             else
             {
-                response.StatusCode = 403;
+                response.Code = StatusCode.ClientError;
                 response.Message = "Wrong email or password";
             }
 
@@ -262,40 +261,40 @@ namespace ChatServer
 
         internal void CreateChatHandler(Message message)
         {
-            string chatName = message.Headers["chatName"];
-            IChat newChat = new Chat(user, chatName);
-            newChat.AddUser(user);
-            user.State = UserState.InChat;
-            server.UserRepository.UpdateState(user.Name, UserState.InChat);
-            server.ChatRepository.AddChat(newChat);
-            SendSuccessResponse(newChat.Key);
+            //string chatName = message.Headers["chatName"];
+            //IChat newChat = new Chat(user, chatName);
+            //newChat.AddUser(user);
+            //user.State = UserState.InChat;
+            //server.UserRepository.UpdateState(user.Name, UserState.InChat);
+            //server.ChatRepository.AddChat(newChat);
+            //SendSuccessResponse(newChat.Key);
         }
 
         internal void GetAllChatsHandler()
         {
-            Message response = new Message();
-            response.Headers.Add("action", "provideAllChats");
-            response.Headers.Add("sender", "server");
-            response.Headers.Add("content-type", "json");
-            response.Headers.Add("encryption", "aes");
+            //Message response = new Message();
+            //response.Headers.Add("action", "provideAllChats");
+            //response.Headers.Add("sender", "server");
+            //response.Headers.Add("content-type", "json");
+            //response.Headers.Add("encryption", "aes");
 
-            IReadOnlyCollection<IChat> chats = server.ChatRepository.GetChats();
+            //IReadOnlyCollection<IChat> chats = server.ChatRepository.GetChats();
 
-            response.Body = coding.GetBytes(JsonSerializer.Serialize(chats.Select(chat => chat.Name)));
+            //response.Body = coding.GetBytes(JsonSerializer.Serialize(chats.Select(chat => chat.Name)));
         }
 
         internal void EnterChatHandler(Message message)
         {
-            IChat chat = server.ChatRepository.GetChat(message.Headers["chatName"]);
-            if (chat == null)
-            {
-                SendErrorResponse();
-                return;
-            }
-            chat.AddUser(user);
-            user.CurrentChat = chat;
-            server.UserRepository.UpdateState(user.Name, UserState.InChat);
-            SendSuccessResponse(chat.Key);
+            //IChat chat = server.ChatRepository.GetChat(message.Headers["chatName"]);
+            //if (chat == null)
+            //{
+            //    SendErrorResponse();
+            //    return;
+            //}
+            //chat.AddUser(user);
+            //user.CurrentChat = chat;
+            //server.UserRepository.UpdateState(user.Name, UserState.InChat);
+            //SendSuccessResponse(chat.Key);
         }
 
         internal void ExitChatHandler(Message message)
@@ -313,18 +312,18 @@ namespace ChatServer
 
         internal bool MessageHandler(Message message, byte[] rawMessage)
         {
-            server.MessageSender.SendToChat(message.Headers["chat"], message);
+            //server.MessageSender.SendToChat(message.Headers["chat"], message);
 
-            server.BroadcastMessage(rawMessage, this);
+            //server.BroadcastMessage(rawMessage, this);
             return true;
         }
 
         internal bool InvalidActionHandler(Message message)
         {
-            Message response = new Message();
-            response.Headers.Add("code", "400");
-            response.Headers.Add("reason", "Unsupported action");
-            SendMessageWithServerAesEncryption(response);
+            //Message response = new Message();
+            //response.Headers.Add("code", "400");
+            //response.Headers.Add("reason", "Unsupported action");
+            //SendMessageWithServerAesEncryption(response);
 
             return false;
         }
