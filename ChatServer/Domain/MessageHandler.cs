@@ -18,7 +18,7 @@ namespace ChatServer.Domain
 
         public void SendToChat(string chatName, Message message)
         {
-            IChat chat = server.chatRepository.GetChat(chatName);
+            IChat chat = server.ChatRepository.GetChat(chatName);
             IEnumerable<ClientInstance> clientsInChat = server.clients.Where(
                 client => client.user.CurrentChat.Id == chat.Id 
                 && client.user.State == UserState.InChat);

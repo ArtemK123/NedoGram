@@ -8,6 +8,7 @@ using ChatCommon.Actions;
 using ChatCommon.Encryption;
 using ChatCommon.Extensibility;
 using ChatCommon.Messages;
+using ChatCommon.Messages.Requests;
 using ChatCommon.Messages.Responses;
 using ChatServer.Domain;
 using ChatServer.Extensibility;
@@ -30,6 +31,8 @@ namespace ChatServer
 
         private byte[] clientAesKey;
 
+        internal readonly Dictionary<UserAction, Action<Request>> RequestHandlers;
+
         public ClientInstance(ITcpWrapper tcpClient, ServerInstance serverInstance, ICoding coding)
         {
             Id = Guid.NewGuid();
@@ -38,6 +41,11 @@ namespace ChatServer
             this.coding = coding;
             aesEncryption = new AesEncryption();
             user = new User();
+            RequestHandlers = new Dictionary<UserAction, Action<Request>>()
+            {
+                { UserAction.Login, this.LoginHandler },
+
+            }
         }
         public void Process()
         {
@@ -122,7 +130,7 @@ namespace ChatServer
                 Console.WriteLine($"User left. Username: {user?.Name}; id: {Id}");
                 if (user.State == UserState.Authorized)
                 {
-                    server.userRepository.UpdateState(user.Name, UserState.Offline);
+                    server.UserRepository.UpdateState(user.Name, UserState.Offline);
                 }
                 server.RemoveConnection(this);
             }
@@ -132,121 +140,19 @@ namespace ChatServer
             }
         }
 
-        internal bool LoginHandler(Message message)
-        {
-            // todo: should be refactored
 
-            bool successful = false;
-            User storedUser = null;
-            try
-            {
-                storedUser = server.userRepository.GetByName(message.Headers["user"]);
-                user = storedUser;
-
-                successful = user.Password == message.Headers["password"];
-            }
-            catch (Exception)
-            {
-                successful = false;
-            }
-
-            Message response = new Message();
-
-            if (successful)
-            {
-                response.Headers.Add("code", "200");
-                server.userRepository.UpdateState(user.Name, UserState.Authorized);
-            }
-            else
-            {
-                response.Headers.Add("code", "403");
-            }
-
-            SendMessageWithServerAesEncryption(response);
-
-            return false;
-        }
-
-        internal void CreateChatHandler(Message message)
-        {
-            string chatName = message.Headers["chatName"];
-            IChat newChat = new Chat(user, chatName);
-            newChat.AddUser(user);
-            user.State = UserState.InChat;
-            server.userRepository.UpdateState(user.Name, UserState.InChat);
-            server.chatRepository.AddChat(newChat);
-            SendSuccessResponse(newChat.Key);
-        }
-
-        internal void GetAllChatsHandler()
-        {
-            Message response = new Message();
-            response.Headers.Add("action", "provideAllChats");
-            response.Headers.Add("sender", "server");
-            response.Headers.Add("content-type", "json");
-            response.Headers.Add("encryption", "aes");
-
-            IReadOnlyCollection<IChat> chats = server.chatRepository.GetChats();
-
-            response.Body = coding.GetBytes(JsonSerializer.Serialize(chats.Select(chat => chat.Name)));
-        }
-
-        internal void EnterChatHandler(Message message)
-        {
-            IChat chat = server.chatRepository.GetChat(message.Headers["chatName"]);
-            if (chat == null)
-            {
-                SendErrorResponse();
-                return;
-            }
-            chat.AddUser(user);
-            user.CurrentChat = chat;
-            server.userRepository.UpdateState(user.Name, UserState.InChat);
-            SendSuccessResponse(chat.Key);
-        }
-
-        internal void ExitChatHandler(Message message)
-        {
-            user.CurrentChat.RemoveUser(user.Name);
-            user.CurrentChat = null;
-            server.userRepository.UpdateState(user.Name, UserState.Authorized);
-            SendSuccessResponse();
-        }
-
-        internal bool RegisterHandler(Message message)
-        {
-            return true;
-        }
-
-        internal bool MessageHandler(Message message, byte[] rawMessage)
-        {
-            server.messageSender.SendToChat(message.Headers["chat"], message);
-
-            server.BroadcastMessage(rawMessage, this);
-            return true;
-        }
-
-        internal bool InvalidActionHandler(Message message)
-        {
-            Message response = new Message();
-            response.Headers.Add("code", "400");
-            response.Headers.Add("reason", "Unsupported action");
-            SendMessageWithServerAesEncryption(response);
-
-            return false;
-        }
 
         internal void SendSuccessResponse(byte[] body = null)
         {
-            Message response = new Message();
-            response.Headers.Add("code", "200");
-            response.Headers.Add("result", "successful");
-            response.Headers.Add("sender", "server");
-            if (body != null)
-            {
-                response.Body = body;
-            }
-            SendMessageWithServerAesEncryption(response);
+            //Message response = new Message();
+            //response.Headers.Add("code", "200");
+            //response.Headers.Add("result", "successful");
+            //response.Headers.Add("sender", "server");
+            //if (body != null)
+            //{
+            //    response.Body = body;
+            //}
+            //SendMessageWithServerAesEncryption(response);
         }
 
         internal void SendErrorResponse()
@@ -313,6 +219,108 @@ namespace ChatServer
         protected internal void Close()
         {
             tcpClient?.Dispose();
+        }
+
+        private void LoginHandler(Request request)
+        {
+            LoginRequest loginRequest = request as LoginRequest;
+
+            bool successful;
+            User storedUser = null;
+            try
+            {
+                user = server.UserRepository.GetByName(request.Sender);
+
+                successful = user.Password == loginRequest.Password;
+            }
+            catch (Exception)
+            {
+                successful = false;
+            }
+
+            Response response = new Response();
+
+            if (successful)
+            {
+                response.StatusCode = 200;
+                server.UserRepository.UpdateState(user.Name, UserState.Authorized);
+            }
+            else
+            {
+                response.StatusCode = 403;
+                response.Message = "Wrong email or password";
+            }
+
+            SendMessageWithServerAesEncryption(response);
+        }
+
+        internal void CreateChatHandler(Message message)
+        {
+            string chatName = message.Headers["chatName"];
+            IChat newChat = new Chat(user, chatName);
+            newChat.AddUser(user);
+            user.State = UserState.InChat;
+            server.UserRepository.UpdateState(user.Name, UserState.InChat);
+            server.ChatRepository.AddChat(newChat);
+            SendSuccessResponse(newChat.Key);
+        }
+
+        internal void GetAllChatsHandler()
+        {
+            Message response = new Message();
+            response.Headers.Add("action", "provideAllChats");
+            response.Headers.Add("sender", "server");
+            response.Headers.Add("content-type", "json");
+            response.Headers.Add("encryption", "aes");
+
+            IReadOnlyCollection<IChat> chats = server.ChatRepository.GetChats();
+
+            response.Body = coding.GetBytes(JsonSerializer.Serialize(chats.Select(chat => chat.Name)));
+        }
+
+        internal void EnterChatHandler(Message message)
+        {
+            IChat chat = server.ChatRepository.GetChat(message.Headers["chatName"]);
+            if (chat == null)
+            {
+                SendErrorResponse();
+                return;
+            }
+            chat.AddUser(user);
+            user.CurrentChat = chat;
+            server.UserRepository.UpdateState(user.Name, UserState.InChat);
+            SendSuccessResponse(chat.Key);
+        }
+
+        internal void ExitChatHandler(Message message)
+        {
+            user.CurrentChat.RemoveUser(user.Name);
+            user.CurrentChat = null;
+            server.UserRepository.UpdateState(user.Name, UserState.Authorized);
+            SendSuccessResponse();
+        }
+
+        internal bool RegisterHandler(Message message)
+        {
+            return true;
+        }
+
+        internal bool MessageHandler(Message message, byte[] rawMessage)
+        {
+            server.MessageSender.SendToChat(message.Headers["chat"], message);
+
+            server.BroadcastMessage(rawMessage, this);
+            return true;
+        }
+
+        internal bool InvalidActionHandler(Message message)
+        {
+            Message response = new Message();
+            response.Headers.Add("code", "400");
+            response.Headers.Add("reason", "Unsupported action");
+            SendMessageWithServerAesEncryption(response);
+
+            return false;
         }
     }
 }

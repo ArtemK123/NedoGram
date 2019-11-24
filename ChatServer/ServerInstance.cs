@@ -8,6 +8,7 @@ using System.Text;
 using System.Threading;
 using ChatCommon;
 using ChatCommon.Actions;
+using ChatCommon.Messages.Requests;
 using ChatCommon.Messages.Responses;
 using ChatServer.Domain;
 using ChatServer.Extensibility;
@@ -20,26 +21,15 @@ namespace ChatServer
         internal readonly List<ClientInstance> clients = new List<ClientInstance>();
         internal RSACryptoServiceProvider rsa;
 
-        internal Dictionary<UserAction, Func<Response>> requestHandlers;
 
-        internal Encoding Encoding { get; } = new UnicodeEncoding(false, true, true);
-
-        internal readonly IUserRepository userRepository = new UserRepository();
-        internal readonly IChatRepository chatRepository = new ChatRepository();
-        internal readonly IMessageSenderService messageSender;
+        internal readonly IUserRepository UserRepository = new UserRepository();
+        internal readonly IChatRepository ChatRepository = new ChatRepository();
+        internal readonly IMessageSenderService MessageSender;
 
         internal ServerInstance()
         {
-            messageSender = new MessageHandler(this);
-        }
+            MessageSender = new MessageHandler(this);
 
-        private void InitializeRequestHandlers()
-        {
-            requestHandlers =
-                new Dictionary<UserAction, Func<Response>>()
-                {
-
-                }
         }
 
         public void Listen(int port)
