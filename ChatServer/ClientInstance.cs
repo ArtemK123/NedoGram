@@ -172,7 +172,7 @@ namespace ChatServer
             tcpClient.Send(message);
         }
 
-        internal void SendMessageWithServerAesEncryption(Message message)
+        internal void SendMessageWithServerAesEncryption<T>(T message) where T : Message 
         {
             aesEncryption.SetKey(clientAesKey);
             tcpClient.Send(aesEncryption.Encrypt(coding.GetBytes(JsonSerializer.Serialize(message))));
@@ -201,7 +201,7 @@ namespace ChatServer
 
                     clientAesKey = aesEncryption.GetKey();
 
-                    Response response = new Response { Code = StatusCode.Ok };
+                    Response response = new Response(StatusCode.Ok);
 
                     SendMessageWithServerAesEncryption(response);
                     user.State = UserState.Connected;
@@ -236,20 +236,17 @@ namespace ChatServer
                 successful = false;
             }
 
-            Response response = new Response();
-
             if (successful)
             {
-                response.Code = StatusCode.Ok;
+                SendMessageWithServerAesEncryption(new Response(StatusCode.Ok));
                 server.UserRepository.UpdateState(user.Name, UserState.Authorized);
+                Console.WriteLine($"{request.Sender} signed in");
             }
             else
             {
-                response.Code = StatusCode.ClientError;
-                response.Message = "Wrong email or password";
+                SendMessageWithServerAesEncryption(new ErrorResponse(StatusCode.Ok, "Wrong email or password"));
+                Console.WriteLine($"{request.Sender} - unsuccessful try to sign in");
             }
-
-            SendMessageWithServerAesEncryption(response);
         }
 
         internal void CreateChatHandler(Message message)

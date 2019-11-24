@@ -12,15 +12,12 @@ namespace ChatCommon.Messages.Responses
         {
         }
 
-        public Response(StatusCode statusCode, string message, string sender = "server")
+        public Response(StatusCode statusCode, string sender = "server")
             : base(sender)
         {
             Code = statusCode;
-            Message = message;
         }
 
         public StatusCode Code { get; set; }
-
-        public string Message { get; set; }
     }
 }

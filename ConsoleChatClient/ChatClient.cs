@@ -40,6 +40,7 @@ namespace ConsoleChatClient
             this.aesEncryption = aesEncryption;
             this.coding = coding;
             rsa = new RSACryptoServiceProvider(4096);
+            serverKey = this.aesEncryption.GetKey();
             InitializeHandlers();
         }
 
@@ -58,7 +59,6 @@ namespace ConsoleChatClient
                 {
                     ClientAction action = GetUserAction();
                     userActionHandlers[action].Invoke();
-
                 };
             }
             catch (Exception ex)
