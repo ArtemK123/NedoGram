@@ -6,6 +6,7 @@ using ChatCommon;
 using ChatCommon.Actions;
 using ChatCommon.Constants;
 using ChatCommon.Encryption;
+using ChatCommon.Exceptions;
 using ChatCommon.Extensibility;
 using ChatCommon.Messages;
 using ChatCommon.Messages.Requests;
@@ -140,7 +141,7 @@ namespace ChatServer
             {
                 user = server.UserRepository.GetByName(request.Sender);
 
-                successful = user.Password == request.Password;
+                successful = user.Password == request.Password && user.State == UserState.Offline;
             }
             catch (Exception)
             {
@@ -166,7 +167,10 @@ namespace ChatServer
             {
                 RegisterRequest registerRequest = JsonSerializer.Deserialize<RegisterRequest>(requestInJson);
                 User newUser = new User(registerRequest.Sender, registerRequest.Password, UserState.Authorized);
-                server.UserRepository.Add(newUser);
+                if (!server.UserRepository.Add(newUser))
+                {
+                    throw new ChatException("User with this name already exist");
+                }
 
                 SendMessageAesEncrypted(new Response(StatusCode.Ok), clientAesKey);
                 user = newUser;

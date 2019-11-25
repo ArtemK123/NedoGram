@@ -52,8 +52,8 @@ namespace ConsoleChatClient
 
                 Console.WriteLine(ConstantsStore.WelcomeMessage);
 
-                Thread receiveThread = new Thread(ReceiveMessage);
-                receiveThread.Start();
+                //Thread receiveThread = new Thread(ReceiveMessage);
+                //receiveThread.Start();
 
                 while (state != UserState.Offline)
                 {
@@ -106,7 +106,7 @@ namespace ConsoleChatClient
         {
             while (true)
             {
-                Console.WriteLine(ConstantsStore.LoginMenuItems + Environment.NewLine);
+                Console.WriteLine(Environment.NewLine + ConstantsStore.LoginMenuItems + Environment.NewLine);
 
                 string input = Console.ReadLine();
                 switch (input)
@@ -139,7 +139,7 @@ namespace ConsoleChatClient
         {
             while (true)
             {
-                Console.WriteLine(chatName);
+                Console.WriteLine(Environment.NewLine + chatName);
                 Console.WriteLine(ConstantsStore.ChatMenu);
 
                 string input = Console.ReadLine();
