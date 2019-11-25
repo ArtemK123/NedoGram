@@ -1,50 +1,56 @@
-﻿using ChatCommon;
-using ChatServer.Extensibility;
+﻿using ChatServer.Extensibility;
 using System;
 using System.Collections.Generic;
+using System.Linq;
 using ChatCommon.Messages;
 
 namespace ChatServer.Domain
 {
     internal class Chat : IChat
     {
-        List<User> users = new List<User>();
+        private readonly HashSet<User> users = new HashSet<User>();
 
         public Chat(User creator, string name)
         {
-
+            Id = Guid.NewGuid();
+            Creator = creator;
+            Name = name;
         }
 
-        public Guid Id => throw new NotImplementedException();
+        public Guid Id { get; }
 
-        public string Name { get => throw new NotImplementedException(); set => throw new NotImplementedException(); }
-        public byte[] Key { get => throw new NotImplementedException(); set => throw new NotImplementedException(); }
+        public User Creator { get; }
 
-        public User Creator => throw new NotImplementedException();
+        public string Name { get; }
 
-        public void AddUser(User user)
+        public byte[] Key { get; set; }
+
+        public bool AddUser(User user)
         {
-            throw new NotImplementedException();
+            try
+            {
+                users.Add(user);
+                return true;
+            }
+            catch (Exception exception)
+            {
+                return false;
+            }
         }
 
         public IReadOnlyCollection<User> GetUsers()
-        {
-            throw new NotImplementedException();
-        }
+            => users.ToArray();
 
         public bool RemoveUser(string userName)
         {
-            throw new NotImplementedException();
-        }
+            User user = users.FirstOrDefault(storedUser => storedUser.Name == userName);
+            if (user != null)
+            {
+                users.Remove(user);
+                return true;
+            }
 
-        public void SendMessage(Message message)
-        {
-            throw new NotImplementedException();
-        }
-
-        bool IChat.AddUser(User user)
-        {
-            throw new NotImplementedException();
+            return false;
         }
     }
 }

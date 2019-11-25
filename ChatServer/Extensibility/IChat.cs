@@ -12,16 +12,14 @@ namespace ChatServer.Extensibility
 
         User Creator { get; }
 
-        byte[] Key { get; set; }
+        string Name { get; }
 
-        string Name { get; set; }
+        byte[] Key { get; set; }
 
         IReadOnlyCollection<User> GetUsers();
 
         bool AddUser(User user);
 
         bool RemoveUser(string userName);
-
-        void SendMessage(Message message);
     }
 }
