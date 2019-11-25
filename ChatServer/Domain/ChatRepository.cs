@@ -16,7 +16,7 @@ namespace ChatServer.Domain
                 chats.Add(chat);
                 return true;
             }
-            catch (Exception exception)
+            catch (Exception)
             {
                 return false;
             }
