@@ -25,7 +25,7 @@ namespace ChatServer
         private readonly AesEncryption aesEncryption;
         internal byte[] clientAesKey;
 
-        internal readonly Dictionary<ClientAction, Action<byte[]>> RequestHandlers;
+        internal readonly Dictionary<ClientAction, Action<string>> RequestHandlers;
 
         public ClientInstance(ITcpWrapper tcpClient, ServerInstance serverInstance, ICoding coding)
         {
@@ -35,7 +35,7 @@ namespace ChatServer
             this.coding = coding;
             aesEncryption = new AesEncryption();
             user = new User();
-            RequestHandlers = new Dictionary<ClientAction, Action<byte[]>>()
+            RequestHandlers = new Dictionary<ClientAction, Action<string>>()
             {
                 { ClientAction.Login, LoginHandler },
                 { ClientAction.Register, RegisterHandler }
@@ -60,10 +60,12 @@ namespace ChatServer
                 {
                     byte[] rawMessage = tcpClient.GetMessage();
 
-                    Request request = ParseMessage<Request>(rawMessage, clientAesKey);
+                    string messageInJson = ParseMessageToJson(rawMessage, clientAesKey);
+
+                    Request request = JsonSerializer.Deserialize<Request>(messageInJson);
 
                     Console.WriteLine($"{request.Sender} - {request.Action}");
-                    RequestHandlers[request.Action].Invoke(rawMessage);
+                    RequestHandlers[request.Action].Invoke(messageInJson);
                 }
             }
             catch (IOException)
@@ -128,9 +130,9 @@ namespace ChatServer
             }
         }
 
-        private void LoginHandler(byte[] rawRequest)
+        private void LoginHandler(string requestInJson)
         {
-            LoginRequest request = ParseMessage<LoginRequest>(rawRequest, clientAesKey);
+            LoginRequest request = JsonSerializer.Deserialize<LoginRequest>(requestInJson);
 
             bool successful;
             User storedUser = null;
@@ -158,11 +160,11 @@ namespace ChatServer
             }
         }
 
-        private void RegisterHandler(byte[] rawRequest)
+        private void RegisterHandler(string requestInJson)
         {
             try
             {
-                RegisterRequest registerRequest = ParseMessage<RegisterRequest>(rawRequest, clientAesKey);
+                RegisterRequest registerRequest = JsonSerializer.Deserialize<RegisterRequest>(requestInJson);
                 User newUser = new User(registerRequest.Sender, registerRequest.Password, UserState.Authorized);
                 server.UserRepository.Add(newUser);
 
@@ -230,17 +232,13 @@ namespace ChatServer
             //SendSuccessResponse();
         }
 
-        private T ParseMessage<T>(byte[] rawMessage, byte[] aesKey) where T : Message
+        private string ParseMessageToJson(byte[] rawMessage, byte[] aesKey)
         {
             aesEncryption.SetKey(aesKey);
 
             byte[] decryptedConnectionMessage = aesEncryption.Decrypt(rawMessage);
 
-            string connectionMessageInJson = coding.Decode(decryptedConnectionMessage);
-
-            T actualInstance = JsonSerializer.Deserialize<T>(connectionMessageInJson);
-
-            return actualInstance;
+            return coding.Decode(decryptedConnectionMessage);
         }
     }
 }
