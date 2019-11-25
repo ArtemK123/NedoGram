@@ -238,7 +238,9 @@ namespace ChatServer
 
             string connectionMessageInJson = coding.Decode(decryptedConnectionMessage);
 
-            return JsonSerializer.Deserialize<T>(connectionMessageInJson);
+            T actualInstance = JsonSerializer.Deserialize<T>(connectionMessageInJson);
+
+            return actualInstance;
         }
     }
 }

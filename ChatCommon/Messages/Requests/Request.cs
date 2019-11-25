@@ -14,6 +14,6 @@ namespace ChatCommon.Messages.Requests
             Action = action;
         }
 
-        public ClientAction Action { get; protected set; }
+        public ClientAction Action { get; set; }
     }
 }
