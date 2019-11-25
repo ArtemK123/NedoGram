@@ -23,9 +23,9 @@ namespace ChatServer
         private readonly ITcpWrapper tcpClient;
         private readonly ServerInstance server;
         private readonly AesEncryption aesEncryption;
-        private byte[] clientAesKey;
+        internal byte[] clientAesKey;
 
-        internal readonly Dictionary<ClientAction, Action<Request>> RequestHandlers;
+        internal readonly Dictionary<ClientAction, Action<byte[]>> RequestHandlers;
 
         public ClientInstance(ITcpWrapper tcpClient, ServerInstance serverInstance, ICoding coding)
         {
@@ -35,7 +35,7 @@ namespace ChatServer
             this.coding = coding;
             aesEncryption = new AesEncryption();
             user = new User();
-            RequestHandlers = new Dictionary<ClientAction, Action<Request>>()
+            RequestHandlers = new Dictionary<ClientAction, Action<byte[]>>()
             {
                 { ClientAction.Login, LoginHandler },
                 { ClientAction.Register, RegisterHandler }
@@ -63,13 +63,13 @@ namespace ChatServer
                     Request request = ParseMessage<Request>(rawMessage, clientAesKey);
 
                     Console.WriteLine($"{request.Sender} - {request.Action}");
-                    RequestHandlers[request.Action].Invoke(request);
+                    RequestHandlers[request.Action].Invoke(rawMessage);
                 }
             }
             catch (IOException)
             {
                 Console.WriteLine($"User left. Username: {user?.Name}; id: {Id}");
-                if (user.State == UserState.Authorized)
+                if (user != null && user.State == UserState.Authorized)
                 {
                     server.UserRepository.UpdateState(user.Name, UserState.Offline);
                 }
@@ -84,6 +84,12 @@ namespace ChatServer
         public void Dispose()
         {
             tcpClient?.Dispose();
+        }
+
+        internal void SendMessageAesEncrypted<T>(T message, byte[] aesKey) where T : Message
+        {
+            aesEncryption.SetKey(aesKey);
+            tcpClient.Send(aesEncryption.Encrypt(coding.GetBytes(JsonSerializer.Serialize(message))));
         }
 
         private void KeyExchange()
@@ -122,9 +128,9 @@ namespace ChatServer
             }
         }
 
-        private void LoginHandler(Request request)
+        private void LoginHandler(byte[] rawRequest)
         {
-            LoginRequest loginRequest = request as LoginRequest;
+            LoginRequest request = ParseMessage<LoginRequest>(rawRequest, clientAesKey);
 
             bool successful;
             User storedUser = null;
@@ -132,7 +138,7 @@ namespace ChatServer
             {
                 user = server.UserRepository.GetByName(request.Sender);
 
-                successful = user.Password == loginRequest.Password;
+                successful = user.Password == request.Password;
             }
             catch (Exception)
             {
@@ -152,11 +158,11 @@ namespace ChatServer
             }
         }
 
-        private void RegisterHandler(Request request)
+        private void RegisterHandler(byte[] rawRequest)
         {
             try
             {
-                RegisterRequest registerRequest = request as RegisterRequest;
+                RegisterRequest registerRequest = ParseMessage<RegisterRequest>(rawRequest, clientAesKey);
                 User newUser = new User(registerRequest.Sender, registerRequest.Password, UserState.Authorized);
                 server.UserRepository.Add(newUser);
 
@@ -216,7 +222,7 @@ namespace ChatServer
             //server.BroadcastMessage(rawMessage, this);
         }
 
-        internal void ExitChatHandler(Message message)
+        private void ExitChatHandler(Message message)
         {
             user.CurrentChat.RemoveUser(user.Name);
             user.CurrentChat = null;
@@ -233,12 +239,6 @@ namespace ChatServer
             string connectionMessageInJson = coding.Decode(decryptedConnectionMessage);
 
             return JsonSerializer.Deserialize<T>(connectionMessageInJson);
-        }
-
-        private void SendMessageAesEncrypted<T>(T message, byte[] aesKey) where T : Message
-        {
-            aesEncryption.SetKey(aesKey);
-            tcpClient.Send(aesEncryption.Encrypt(coding.GetBytes(JsonSerializer.Serialize(message))));
         }
     }
 }

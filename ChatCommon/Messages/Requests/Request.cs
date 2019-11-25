@@ -2,13 +2,13 @@
 
 namespace ChatCommon.Messages.Requests
 {
-    public abstract class Request : Message
+    public class Request : Message
     {
-        protected Request()
+        public Request()
         {
         }
 
-        protected Request(string sender, ClientAction action)
+        public Request(string sender, ClientAction action)
             : base(sender)
         {
             Action = action;

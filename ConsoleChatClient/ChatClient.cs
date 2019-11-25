@@ -170,16 +170,16 @@ namespace ConsoleChatClient
         {
             userActionHandlers = new Dictionary<ClientAction, Action>
             {
-                { ClientAction.Login, this.LoginHandler },
-                { ClientAction.Register, this.RegisterHandler },
-                { ClientAction.ShowChats, this.ShowAllChatsHandler },
-                { ClientAction.CreateChat, this.CreateChatHandler },
-                { ClientAction.EnterChat, this.EnterChatHandler },
-                { ClientAction.SendMessage, this.SendMessageHandler },
-                { ClientAction.ShowUsers, this.ShowAllUsersHandler },
-                { ClientAction.GoToMainMenu, this.GotoMainMenuHandler },
-                { ClientAction.GoToChatMenu, this.GoToChatHandler },
-                { ClientAction.Exit, this.ExitHandler },
+                { ClientAction.Login, LoginHandler },
+                { ClientAction.Register, RegisterHandler },
+                { ClientAction.ShowChats, ShowAllChatsHandler },
+                { ClientAction.CreateChat, CreateChatHandler },
+                { ClientAction.EnterChat, EnterChatHandler },
+                { ClientAction.SendMessage, SendMessageHandler },
+                { ClientAction.ShowUsers, ShowAllUsersHandler },
+                { ClientAction.GoToMainMenu, GotoMainMenuHandler },
+                { ClientAction.GoToChatMenu, GoToChatHandler },
+                { ClientAction.Exit, ExitHandler }
             };
         }
 
@@ -324,10 +324,12 @@ namespace ConsoleChatClient
             return JsonSerializer.Deserialize<T>(connectionMessageInJson);
         }
 
-        private void SendMessageAesEncrypted(Message message, byte[] key)
+        private void SendMessageAesEncrypted<T>(T message, byte[] key) where T : Message
         {
             aesEncryption.SetKey(key);
-            tcpClient.Send(aesEncryption.Encrypt(coding.GetBytes(JsonSerializer.Serialize(message))));
+
+            string messageInJson = JsonSerializer.Serialize(message);
+            tcpClient.Send(aesEncryption.Encrypt(coding.GetBytes(messageInJson)));
         }
 
         private void ReadServerPublicKey()
@@ -368,7 +370,7 @@ namespace ConsoleChatClient
                     Console.WriteLine(exception.Message);
                     Console.WriteLine("Connection lost!");
                     Console.ReadLine();
-                    this.Dispose();
+                    Dispose();
                 }
             }
         }

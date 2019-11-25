@@ -73,23 +73,6 @@ namespace ChatServer
             }
         }
 
-        protected internal void BroadcastMessage(byte[] message, ClientInstance sender)
-        {
-            try
-            {
-                foreach (ClientInstance clientInstance in clients.Where(client => !client.Id.Equals(sender.Id)))
-                {
-                    clientInstance.SendMessageBytes(message);
-                }
-
-                Console.WriteLine($"{sender.user.Name} sent message");
-            }
-            catch (Exception exception)
-            {
-                Console.WriteLine(exception.Message);
-            }
-        }
-
         protected internal void Disconnect()
         {
             tcpListener?.Stop();
@@ -97,7 +80,7 @@ namespace ChatServer
 
             foreach (ClientInstance client in clients)
             {
-                client.Close();
+                client.Dispose();
             }
 
             Environment.Exit(0);

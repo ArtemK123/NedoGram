@@ -25,7 +25,7 @@ namespace ChatServer.Domain
         
             foreach (ClientInstance client in clientsInChat)
             {
-                client.SendMessageWithServerAesEncryption(message);
+                client.SendMessageAesEncrypted(message, client.clientAesKey);
             }
         }
 
