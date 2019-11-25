@@ -200,7 +200,7 @@ namespace ConsoleChatClient
                 SendMessageAesEncrypted(loginRequest, serverKey);
 
                 byte[] rawResponse = tcpClient.GetMessage();
-                Response response = ParseMessage<Response>(rawResponse);
+                Response response = ParseMessage<Response>(rawResponse, serverKey);
 
                 if (response.Code == StatusCode.Ok)
                 {
@@ -238,7 +238,7 @@ namespace ConsoleChatClient
             SendMessageAesEncrypted(registerRequest, serverKey);
 
             byte[] rawResponse = tcpClient.GetMessage();
-            Response response = ParseMessage<Response>(rawResponse);
+            Response response = ParseMessage<Response>(rawResponse, serverKey);
             if (response.Code == StatusCode.Ok)
             {
                 UserName = userName;
@@ -304,7 +304,7 @@ namespace ConsoleChatClient
 
             byte[] rawResponse = tcpClient.GetMessage();
 
-            Response response = ParseMessage<Response>(rawResponse);
+            Response response = ParseMessage<Response>(rawResponse, serverKey);
 
             if (response.Code == StatusCode.Ok)
             {
@@ -316,9 +316,9 @@ namespace ConsoleChatClient
             }
         }
 
-        private T ParseMessage<T>(byte[] rawMessage)
+        private T ParseMessage<T>(byte[] rawMessage, byte[] aesKey)
         {
-            aesEncryption.SetKey(serverKey);
+            aesEncryption.SetKey(aesKey);
             byte[] decryptedConnectionMessage = aesEncryption.Decrypt(rawMessage);
             string connectionMessageInJson = coding.Decode(decryptedConnectionMessage);
             return JsonSerializer.Deserialize<T>(connectionMessageInJson);
