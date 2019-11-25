@@ -6,8 +6,8 @@ namespace ChatServer.Extensibility
     {
         IReadOnlyCollection<IChat> GetChats();
 
-        IChat GetChat(string name);
+        IChat GetChat(string chatName);
 
-        void AddChat(IChat chat);
+        bool AddChat(IChat chat);
     }
 }

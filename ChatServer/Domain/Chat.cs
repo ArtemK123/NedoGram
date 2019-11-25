@@ -2,7 +2,6 @@
 using System;
 using System.Collections.Generic;
 using System.Linq;
-using ChatCommon.Messages;
 
 namespace ChatServer.Domain
 {
@@ -10,11 +9,12 @@ namespace ChatServer.Domain
     {
         private readonly HashSet<User> users = new HashSet<User>();
 
-        public Chat(User creator, string name)
+        public Chat(User creator, string name, byte[] aesKey)
         {
             Id = Guid.NewGuid();
             Creator = creator;
             Name = name;
+            Key = aesKey;
         }
 
         public Guid Id { get; }
