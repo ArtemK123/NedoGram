@@ -1,10 +1,10 @@
-﻿namespace ChatCommon.Actions
+﻿namespace ChatCommon.Constants
 {
     public enum ClientAction
     {
         Login,
         Register,
-        ShowChats,
+        ShowAllChats,
         CreateChat,
         EnterChat,
         SendMessage,

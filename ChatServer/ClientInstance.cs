@@ -1,9 +1,9 @@
 ﻿using System;
 using System.Collections.Generic;
 using System.IO;
+using System.Linq;
 using System.Text.Json;
 using ChatCommon;
-using ChatCommon.Actions;
 using ChatCommon.Constants;
 using ChatCommon.Encryption;
 using ChatCommon.Exceptions;
@@ -12,6 +12,7 @@ using ChatCommon.Messages;
 using ChatCommon.Messages.Requests;
 using ChatCommon.Messages.Responses;
 using ChatServer.Domain;
+using ChatServer.Extensibility;
 
 namespace ChatServer
 {
@@ -39,7 +40,8 @@ namespace ChatServer
             RequestHandlers = new Dictionary<ClientAction, Action<string>>()
             {
                 { ClientAction.Login, LoginHandler },
-                { ClientAction.Register, RegisterHandler }
+                { ClientAction.Register, RegisterHandler },
+                { ClientAction.ShowAllChats, ShowAllChatsHandler }
             };
         }
 
@@ -183,6 +185,13 @@ namespace ChatServer
             }
         }
 
+        private void ShowAllChatsHandler(string requestInJson)
+        {
+            IReadOnlyCollection<string> chatNames = server.ChatRepository.GetChats().Select(chat => chat.Name).ToArray();
+
+            SendMessageAesEncrypted(new ShowChatsResponse(chatNames, StatusCode.Ok), clientAesKey);
+        }
+
         private void CreateChatHandler(Message message)
         {
             //string chatName = message.Headers["chatName"];
@@ -192,19 +201,6 @@ namespace ChatServer
             //server.UserRepository.UpdateState(user.Name, UserState.InChat);
             //server.ChatRepository.AddChat(newChat);
             //SendSuccessResponse(newChat.Key);
-        }
-
-        private void GetAllChatsHandler()
-        {
-            //Message response = new Message();
-            //response.Headers.Add("action", "provideAllChats");
-            //response.Headers.Add("sender", "server");
-            //response.Headers.Add("content-type", "json");
-            //response.Headers.Add("encryption", "aes");
-
-            //IReadOnlyCollection<IChat> chats = server.ChatRepository.GetChats();
-
-            //response.Body = coding.GetBytes(JsonSerializer.Serialize(chats.Select(chat => chat.Name)));
         }
 
         private void EnterChatHandler(Message message)

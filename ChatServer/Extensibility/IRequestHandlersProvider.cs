@@ -1,6 +1,6 @@
 ﻿using System;
 using System.Collections.Generic;
-using ChatCommon.Actions;
+using ChatCommon.Constants;
 using ChatCommon.Messages.Responses;
 
 namespace ChatServer.Extensibility

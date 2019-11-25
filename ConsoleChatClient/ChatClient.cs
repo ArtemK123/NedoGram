@@ -4,7 +4,6 @@ using System.Security.Cryptography;
 using System.Text.Json;
 using System.Threading;
 using ChatCommon;
-using ChatCommon.Actions;
 using ChatCommon.Constants;
 using ChatCommon.Encryption;
 using ChatCommon.Exceptions;
@@ -129,10 +128,36 @@ namespace ConsoleChatClient
 
         private ClientAction GetMainMenuAction()
         {
-            Console.WriteLine(Environment.NewLine + ConstantsStore.MainMenuTitle + Environment.NewLine + ConstantsStore.MainMenu);
-            string actionNumber = Console.ReadLine();
+            while (true)
+            {
+                Console.WriteLine(Environment.NewLine + ConstantsStore.MainMenuTitle + Environment.NewLine + ConstantsStore.MainMenu);
+                string input = Console.ReadLine();
 
-            throw new NotImplementedException();
+                switch (input)
+                {
+                    case "1":
+                    {
+                        return ClientAction.ShowAllChats;
+                    }
+                    case "2":
+                    {
+                        return ClientAction.CreateChat;
+                    }
+                    case "3":
+                    {
+                        return ClientAction.EnterChat;
+                    }
+                    case "0":
+                    {
+                        return ClientAction.Exit;
+                    }
+                    default:
+                    {
+                        Console.WriteLine("Wrong input");
+                        break;
+                    }
+                }
+            }
         }
 
         private ClientAction GetChatMenuAction()
@@ -172,7 +197,7 @@ namespace ConsoleChatClient
             {
                 { ClientAction.Login, LoginHandler },
                 { ClientAction.Register, RegisterHandler },
-                { ClientAction.ShowChats, ShowAllChatsHandler },
+                { ClientAction.ShowAllChats, ShowAllChatsHandler },
                 { ClientAction.CreateChat, CreateChatHandler },
                 { ClientAction.EnterChat, EnterChatHandler },
                 { ClientAction.SendMessage, SendMessageHandler },
@@ -252,7 +277,22 @@ namespace ConsoleChatClient
 
         private void ShowAllChatsHandler()
         {
-            Console.WriteLine("ShowAllChatsHandler");
+            SendMessageAesEncrypted(new ShowChatsRequest(UserName), serverKey);
+
+            byte[] rawResponse = tcpClient.GetMessage();
+
+            ShowChatsResponse response = ParseMessage<ShowChatsResponse>(rawResponse, serverKey);
+
+            Console.WriteLine("Available chats:");
+
+            if (response?.ChatNames == null)
+            {
+                return;
+            }
+            foreach (string chatName in response.ChatNames)
+            {
+                Console.WriteLine($"-{chatName}");
+            }
         }
 
         private void CreateChatHandler()

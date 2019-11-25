@@ -1,4 +1,4 @@
-﻿using ChatCommon.Actions;
+﻿using ChatCommon.Constants;
 
 namespace ChatCommon.Messages.Requests
 {
