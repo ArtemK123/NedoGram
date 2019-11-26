@@ -25,7 +25,7 @@ namespace ConsoleChatClient
         private readonly RSACryptoServiceProvider rsa;
         private byte[] serverKey;
         private byte[] chatKey;
-        private UserState state = UserState.Offline;
+        private UserState userState = UserState.Offline;
         private string chatName = null;
 
         private Dictionary<ClientAction, Action> userActionHandlers;
@@ -54,7 +54,7 @@ namespace ConsoleChatClient
                 //Thread receiveThread = new Thread(ReceiveMessage);
                 //receiveThread.Start();
 
-                while (state != UserState.Offline)
+                while (userState != UserState.Offline)
                 {
                     ClientAction action = GetUserAction();
                     userActionHandlers[action].Invoke();
@@ -80,7 +80,7 @@ namespace ConsoleChatClient
 
         private ClientAction GetUserAction()
         {
-            switch (state)
+            switch (userState)
             {
                 case UserState.Connected:
                 {
@@ -96,7 +96,7 @@ namespace ConsoleChatClient
                 }
                 default:
                 {
-                    throw new ChatException("Wrong user state");
+                    throw new NedoGramException("Wrong user state");
                 }
             }
         }
@@ -229,7 +229,7 @@ namespace ConsoleChatClient
 
                 if (response.Code == StatusCode.Ok)
                 {
-                    state = UserState.Authorized;
+                    userState = UserState.Authorized;
                     Console.WriteLine(ConstantsStore.SuccessfulSignIn);
                     return;
                 }
@@ -267,7 +267,7 @@ namespace ConsoleChatClient
             if (response.Code == StatusCode.Ok)
             {
                 UserName = userName;
-                state = UserState.Authorized;
+                userState = UserState.Authorized;
                 Console.WriteLine("Signed up successfully");
                 return;
             }
@@ -291,13 +291,34 @@ namespace ConsoleChatClient
             }
             foreach (string chatName in response.ChatNames)
             {
-                Console.WriteLine($"-{chatName}");
+                Console.WriteLine(chatName);
             }
         }
 
         private void CreateChatHandler()
         {
-            Console.WriteLine("CreateChatHandler");
+            Console.WriteLine(Environment.NewLine + "Write a chat name:");
+            string newChatName = Console.ReadLine();
+
+            SendMessageAesEncrypted(new CreateChatRequest(newChatName, UserName), serverKey);
+
+            string responseInJson = ParseMessageToJson(tcpClient.GetMessage(), serverKey);
+
+            Response response = JsonSerializer.Deserialize<Response>(responseInJson);
+
+            if (response.Code != StatusCode.Ok)
+            {
+                Console.WriteLine(response.Message);
+                return;
+            }
+
+            ChatInfoReposnse chatInfoReposnse = JsonSerializer.Deserialize<ChatInfoReposnse>(responseInJson);
+
+            chatKey = chatInfoReposnse.Key;
+            chatName = chatInfoReposnse.ChatName;
+            userState = UserState.InChat;
+            Console.WriteLine("Chat was created successfully");
+            Console.WriteLine($"Connected to the chat {chatName}");
         }
 
         private void EnterChatHandler()
@@ -348,7 +369,7 @@ namespace ConsoleChatClient
 
             if (response.Code == StatusCode.Ok)
             {
-                state = UserState.Connected;
+                userState = UserState.Connected;
             }
             else
             {
@@ -356,13 +377,15 @@ namespace ConsoleChatClient
             }
         }
 
-        private T ParseMessage<T>(byte[] rawMessage, byte[] aesKey)
+        private string ParseMessageToJson(byte[] rawMessage, byte[] aesKey)
         {
             aesEncryption.SetKey(aesKey);
             byte[] decryptedConnectionMessage = aesEncryption.Decrypt(rawMessage);
-            string connectionMessageInJson = coding.Decode(decryptedConnectionMessage);
-            return JsonSerializer.Deserialize<T>(connectionMessageInJson);
+            return coding.Decode(decryptedConnectionMessage);
         }
+
+        private T ParseMessage<T>(byte[] rawMessage, byte[] aesKey)
+            => JsonSerializer.Deserialize<T>(ParseMessageToJson(rawMessage, aesKey));
 
         private void SendMessageAesEncrypted<T>(T message, byte[] key) where T : Message
         {

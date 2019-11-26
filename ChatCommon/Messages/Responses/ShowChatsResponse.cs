@@ -13,6 +13,6 @@ namespace ChatCommon.Messages.Responses
 
         public ShowChatsResponse() { }
 
-        public IReadOnlyCollection<string> ChatNames { get; }
+        public IReadOnlyCollection<string> ChatNames { get; set; }
     }
 }
