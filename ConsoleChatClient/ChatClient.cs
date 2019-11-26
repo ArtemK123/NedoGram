@@ -1,5 +1,6 @@
 ﻿using System;
 using System.Collections.Generic;
+using System.IO;
 using System.Security.Cryptography;
 using System.Text.Json;
 using System.Threading;
@@ -29,6 +30,7 @@ namespace ConsoleChatClient
         private string chatName = null;
 
         private Dictionary<ClientAction, Action> userActionHandlers;
+        private Dictionary<ClientAction, Action<string>> responseHandlers;
 
         public ChatClient(
             ITcpWrapper tcpClient,
@@ -51,8 +53,8 @@ namespace ConsoleChatClient
 
                 Console.WriteLine(ConstantsStore.WelcomeMessage);
 
-                //Thread receiveThread = new Thread(ReceiveMessage);
-                //receiveThread.Start();
+                Thread receiveThread = new Thread(ReceiveMessage);
+                receiveThread.Start();
 
                 while (userState != UserState.Offline)
                 {
@@ -195,50 +197,63 @@ namespace ConsoleChatClient
         {
             userActionHandlers = new Dictionary<ClientAction, Action>
             {
-                { ClientAction.Login, LoginHandler },
-                { ClientAction.Register, RegisterHandler },
-                { ClientAction.ShowAllChats, ShowAllChatsHandler },
-                { ClientAction.CreateChat, CreateChatHandler },
-                { ClientAction.EnterChat, EnterChatHandler },
-                { ClientAction.SendMessage, SendMessageHandler },
-                { ClientAction.ShowUsers, ShowAllUsersHandler },
-                { ClientAction.GoToMainMenu, GotoMainMenuHandler },
-                { ClientAction.GoToChatMenu, GoToChatHandler },
-                { ClientAction.Exit, ExitHandler }
+                { ClientAction.Login, LoginRequestHandler },
+                { ClientAction.Register, RegisterRequestHandler },
+                { ClientAction.ShowAllChats, ShowAllChatsRequestHandler },
+                { ClientAction.CreateChat, CreateChatRequestHandler },
+                { ClientAction.EnterChat, EnterChatRequestHandler },
+                { ClientAction.SendMessage, SendMessageRequestHandler },
+                { ClientAction.ShowUsers, ShowAllUsersRequestHandler },
+                { ClientAction.GoToMainMenu, GotoMainMenuRequestHandler },
+                { ClientAction.GoToChatMenu, GoToChatRequestHandler },
+                { ClientAction.Exit, ExitRequestHandler }
+            };
+
+            responseHandlers = new Dictionary<ClientAction, Action<string>>
+            {
+                { ClientAction.Login, LoginResponseHandler },
+                { ClientAction.Register, RegisterResponseHandler },
+                { ClientAction.ShowAllChats, ShowAllChatsResponseHandler },
+                { ClientAction.CreateChat, CreateChatResponseHandler },
+                { ClientAction.EnterChat, EnterChatResponseHandler },
+                { ClientAction.SendMessage, SendMessageResponseHandler },
+                { ClientAction.ShowUsers, ShowAllUsersResponseHandler },
+                { ClientAction.GoToMainMenu, GotoMainMenuResponseHandler },
+                { ClientAction.GoToChatMenu, GoToChatResponseHandler },
+                { ClientAction.Exit, ExitResponseHandler }
             };
         }
 
-        private void LoginHandler()
+        private void LoginRequestHandler()
         {
-            while (true)
-            {
-                Console.WriteLine("Write your username");
-                UserName = Console.ReadLine();
+            Console.WriteLine("Write your username");
+            UserName = Console.ReadLine();
 
-                Console.WriteLine(Environment.NewLine + "Write your password");
-                string password = Console.ReadLine();
+            Console.WriteLine(Environment.NewLine + "Write your password");
+            string password = Console.ReadLine();
 
-                LoginRequest loginRequest = new LoginRequest();
-                loginRequest.Sender = UserName;
-                loginRequest.Password = GetPasswordHash(password);
+            LoginRequest loginRequest = new LoginRequest();
+            loginRequest.Sender = UserName;
+            loginRequest.Password = GetPasswordHash(password);
 
-                SendMessageAesEncrypted(loginRequest, serverKey);
-
-                byte[] rawResponse = tcpClient.GetMessage();
-                Response response = ParseMessage<Response>(rawResponse, serverKey);
-
-                if (response.Code == StatusCode.Ok)
-                {
-                    userState = UserState.Authorized;
-                    Console.WriteLine(ConstantsStore.SuccessfulSignIn);
-                    return;
-                }
-
-                Console.WriteLine($"Error while signing in - {response.Message}");
-            }
+            SendMessageAesEncrypted(loginRequest, serverKey);
         }
 
-        private void RegisterHandler()
+        private void LoginResponseHandler(string responseInJson)
+        {
+            LoginResponse response = JsonSerializer.Deserialize<LoginResponse>(responseInJson);
+
+            if (response.Code == StatusCode.Ok)
+            {
+                userState = UserState.Authorized;
+                Console.WriteLine(ConstantsStore.SuccessfulSignIn);
+                return;
+            }
+
+            Console.WriteLine($"Error while signing in - {response.Message}");
+        }
+
+        private void RegisterRequestHandler()
         {
             Console.WriteLine("Enter your nickname");
 
@@ -261,12 +276,15 @@ namespace ConsoleChatClient
             var registerRequest = new RegisterRequest(userName, GetPasswordHash(password));
 
             SendMessageAesEncrypted(registerRequest, serverKey);
+        }
 
-            byte[] rawResponse = tcpClient.GetMessage();
-            Response response = ParseMessage<Response>(rawResponse, serverKey);
+        private void RegisterResponseHandler(string responseInJson)
+        {
+            RegisterResponse response = JsonSerializer.Deserialize<RegisterResponse>(responseInJson);
+
             if (response.Code == StatusCode.Ok)
             {
-                UserName = userName;
+                UserName = response.UserName;
                 userState = UserState.Authorized;
                 Console.WriteLine("Signed up successfully");
                 return;
@@ -275,13 +293,14 @@ namespace ConsoleChatClient
             Console.Write($"Problems were occured while signing up - {response.Message}");
         }
 
-        private void ShowAllChatsHandler()
+        private void ShowAllChatsRequestHandler()
         {
             SendMessageAesEncrypted(new ShowChatsRequest(UserName), serverKey);
+        }
 
-            byte[] rawResponse = tcpClient.GetMessage();
-
-            ShowChatsResponse response = ParseMessage<ShowChatsResponse>(rawResponse, serverKey);
+        private void ShowAllChatsResponseHandler(string responseInJson)
+        {
+            ShowAllChatsResponse response = JsonSerializer.Deserialize<ShowAllChatsResponse>(responseInJson);
 
             Console.WriteLine("Available chats:");
 
@@ -295,16 +314,17 @@ namespace ConsoleChatClient
             }
         }
 
-        private void CreateChatHandler()
+        private void CreateChatRequestHandler()
         {
             Console.WriteLine(Environment.NewLine + "Write a chat name:");
             string newChatName = Console.ReadLine();
 
             SendMessageAesEncrypted(new CreateChatRequest(newChatName, UserName), serverKey);
+        }
 
-            string responseInJson = ParseMessageToJson(tcpClient.GetMessage(), serverKey);
-
-            Response response = JsonSerializer.Deserialize<Response>(responseInJson);
+        private void CreateChatResponseHandler(string responseInJson)
+        {
+            CreateChatResponse response = JsonSerializer.Deserialize<CreateChatResponse>(responseInJson);
 
             if (response.Code != StatusCode.Ok)
             {
@@ -312,41 +332,69 @@ namespace ConsoleChatClient
                 return;
             }
 
-            ChatInfoReposnse chatInfoReposnse = JsonSerializer.Deserialize<ChatInfoReposnse>(responseInJson);
-
-            chatKey = chatInfoReposnse.Key;
-            chatName = chatInfoReposnse.ChatName;
+            chatKey = response.Key;
+            chatName = response.ChatName;
             userState = UserState.InChat;
             Console.WriteLine("Chat was created successfully");
             Console.WriteLine($"Connected to the chat {chatName}");
         }
-
-        private void EnterChatHandler()
+        
+        private void EnterChatRequestHandler()
         {
             Console.WriteLine("EnterChatHandler");
         }
 
-        private void SendMessageHandler()
+        private void EnterChatResponseHandler(string responseInJson)
+        {
+            Console.WriteLine("EnterChatHandler");
+        }
+
+        private void SendMessageRequestHandler()
         {
             throw new NotImplementedException();
         }
 
-        private void ShowAllUsersHandler()
+        private void SendMessageResponseHandler(string responseInJson)
         {
             throw new NotImplementedException();
         }
 
-        private void GotoMainMenuHandler()
+        private void ShowAllUsersRequestHandler()
         {
             throw new NotImplementedException();
         }
 
-        private void GoToChatHandler()
+        private void ShowAllUsersResponseHandler(string responseInJson)
         {
             throw new NotImplementedException();
         }
 
-        private void ExitHandler()
+        private void GotoMainMenuRequestHandler()
+        {
+            throw new NotImplementedException();
+        }
+
+        private void GotoMainMenuResponseHandler(string responseInJson)
+        {
+            throw new NotImplementedException();
+        }
+
+        private void GoToChatRequestHandler()
+        {
+            throw new NotImplementedException();
+        }
+
+        private void GoToChatResponseHandler(string responseInJson)
+        {
+            throw new NotImplementedException();
+        }
+
+        private void ExitRequestHandler()
+        {
+            Dispose();
+        }
+
+        private void ExitResponseHandler(string responseInJson)
         {
             Dispose();
         }
@@ -359,9 +407,9 @@ namespace ConsoleChatClient
             ReadServerPublicKey();
 
             // send aes key and iv to the server
-            AesKeyExchangeMessage keyExchangeMessage = new AesKeyExchangeMessage(aesEncryption.GetKey(), aesEncryption.GetIV(), UserName);
+            AesKeyExchangeRequest keyExchangeRequest = new AesKeyExchangeRequest(aesEncryption.GetKey(), aesEncryption.GetIV(), UserName);
 
-            tcpClient.Send(rsa.Encrypt(coding.GetBytes(JsonSerializer.Serialize(keyExchangeMessage)), false));
+            tcpClient.Send(rsa.Encrypt(coding.GetBytes(JsonSerializer.Serialize(keyExchangeRequest)), false));
 
             byte[] rawResponse = tcpClient.GetMessage();
 
@@ -402,7 +450,6 @@ namespace ConsoleChatClient
             rsa.ImportRSAPublicKey(key, out bytesParsed);
         }
 
-
         private string GetPasswordHash(string password)
         {
             using (var md5 = new MD5CryptoServiceProvider())
@@ -411,30 +458,30 @@ namespace ConsoleChatClient
             }
         }
 
-
         private void ReceiveMessage()
         {
-            // todo: should be implemented in differnet way
-
-            while (true)
+            try
             {
-                try
+                while (true)
                 {
                     byte[] rawMessage = tcpClient.GetMessage();
 
-                    string messageInJson = coding.Decode(aesEncryption.Decrypt(rawMessage));
+                    string messageInJson = ParseMessageToJson(rawMessage, serverKey);
 
-                    Message message = JsonSerializer.Deserialize<Message>(messageInJson);
+                    Response response = JsonSerializer.Deserialize<Response>(messageInJson);
 
-                    //Console.WriteLine($"{message.Headers["sender"]}: {message.Body}");
+                    Console.WriteLine($"{response.Sender} - {response.Action}");
+                    responseHandlers[response.Action].Invoke(messageInJson);
                 }
-                catch(Exception exception)
-                {
-                    Console.WriteLine(exception.Message);
-                    Console.WriteLine("Connection lost!");
-                    Console.ReadLine();
-                    Dispose();
-                }
+            }
+            catch (IOException ioException)
+            {
+                Console.WriteLine("Connection is closed");
+                Dispose();
+            }
+            catch (Exception exception)
+            {
+                Console.WriteLine($"Error = {exception.Message}");
             }
         }
     }

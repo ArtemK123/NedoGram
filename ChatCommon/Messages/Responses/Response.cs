@@ -12,14 +12,18 @@ namespace ChatCommon.Messages.Responses
         {
         }
 
-        public Response(StatusCode statusCode, string message = "", string sender = "server")
+        public Response(StatusCode statusCode, ClientAction action, string message = "", string sender = "server")
             : base(sender)
         {
             Code = statusCode;
             Message = message;
+            Action = action;
+
         }
 
         public StatusCode Code { get; set; }
+
+        public ClientAction Action { get; set; }
 
         public string Message { get; set; }
     }

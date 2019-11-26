@@ -41,7 +41,7 @@ namespace ChatServer
             {
                 { ClientAction.Login, LoginHandler },
                 { ClientAction.Register, RegisterHandler },
-                { ClientAction.ShowAllChats, ShowChatsHandler },
+                { ClientAction.ShowAllChats, ShowAllChatsHandler },
                 { ClientAction.CreateChat, CreateChatHandler }
             };
         }
@@ -115,14 +115,14 @@ namespace ChatServer
                 {
                     byte[] messageWithKeyBytes = server.rsa.Decrypt(encryptedMessageWithKey, false);
                     string messageWithKeyInJson = coding.Decode(messageWithKeyBytes);
-                    AesKeyExchangeMessage aesKeyExchangeMessage = JsonSerializer.Deserialize<AesKeyExchangeMessage>(messageWithKeyInJson);
+                    AesKeyExchangeRequest aesKeyExchangeRequest = JsonSerializer.Deserialize<AesKeyExchangeRequest>(messageWithKeyInJson);
 
-                    aesEncryption.SetKey(aesKeyExchangeMessage.Key);
-                    aesEncryption.SetIV(aesKeyExchangeMessage.IV);
+                    aesEncryption.SetKey(aesKeyExchangeRequest.Key);
+                    aesEncryption.SetIV(aesKeyExchangeRequest.IV);
 
                     clientAesKey = aesEncryption.GetKey();
 
-                    Response response = new Response(StatusCode.Ok);
+                    AesKeyExchangeResponse response = new AesKeyExchangeResponse(StatusCode.Ok);
 
                     SendMessageAesEncrypted(response, clientAesKey);
                     user.State = UserState.Connected;
@@ -154,13 +154,13 @@ namespace ChatServer
 
             if (successful)
             {
-                SendMessageAesEncrypted(new Response(StatusCode.Ok), clientAesKey);
+                SendMessageAesEncrypted(new LoginResponse(StatusCode.Ok), clientAesKey);
                 server.UserRepository.UpdateState(user.Name, UserState.Authorized);
                 Console.WriteLine($"{request.Sender} signed in");
             }
             else
             {
-                SendMessageAesEncrypted(new Response(StatusCode.Error, "Wrong email or password"), clientAesKey);
+                SendMessageAesEncrypted(new LoginResponse(StatusCode.Error, "Wrong email or password"), clientAesKey);
                 throw new Exception($"{request.Sender} - unsuccessful try to sign in");
             }
         }
@@ -176,22 +176,22 @@ namespace ChatServer
                     throw new NedoGramException("User with this name already exist");
                 }
 
-                SendMessageAesEncrypted(new Response(StatusCode.Ok), clientAesKey);
+                SendMessageAesEncrypted(new RegisterResponse(StatusCode.Ok, newUser.Name), clientAesKey);
                 user = newUser;
                 Console.WriteLine($"{user.Name} signed up successfully.");
             }
             catch (Exception exception)
             {
-                SendMessageAesEncrypted(new Response(StatusCode.Error, "Error while signing up"), clientAesKey);
+                SendMessageAesEncrypted(new RegisterResponse(StatusCode.Error, "", "Error while signing up"), clientAesKey);
                 throw new Exception($"{user.Name} - error occured while signing up: {exception}");
             }
         }
 
-        private void ShowChatsHandler(string requestInJson)
+        private void ShowAllChatsHandler(string requestInJson)
         {
             IReadOnlyCollection<string> chatNames = server.ChatRepository.GetChats().Select(chat => chat.Name).ToArray();
 
-            SendMessageAesEncrypted(new ShowChatsResponse(chatNames, StatusCode.Ok), clientAesKey);
+            SendMessageAesEncrypted(new ShowAllChatsResponse(chatNames, StatusCode.Ok), clientAesKey);
         }
 
         private void CreateChatHandler(string requestInJson)
@@ -223,7 +223,7 @@ namespace ChatServer
 
                 server.ChatRepository.AddChat(newChat);
                 SendMessageAesEncrypted(
-                    new ChatInfoReposnse(newChat.Name, newChat.GetUsers().Select(user => user.Name).ToArray(), key),
+                    new CreateChatResponse(newChat.Name, newChat.GetUsers().Select(user => user.Name).ToArray(), key, StatusCode.Ok), 
                     clientAesKey);
 
                 Console.WriteLine($"Chat created. ChatName - {newChat.Name}, Creator - {creator.Name}");
@@ -231,7 +231,7 @@ namespace ChatServer
             // todo: system exception should not be available to the client
             catch (Exception exception)
             {
-                SendMessageAesEncrypted(new Response(StatusCode.Error, exception.Message), clientAesKey);
+                SendMessageAesEncrypted(new CreateChatResponse("", new List<string>(), new byte[0],  StatusCode.Error, exception.Message), clientAesKey);
                 throw;
             }
         }

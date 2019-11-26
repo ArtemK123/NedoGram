@@ -2,6 +2,7 @@
 {
     public enum ClientAction
     {
+        KeyExchange,
         Login,
         Register,
         ShowAllChats,
