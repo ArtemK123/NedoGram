@@ -1,26 +1,22 @@
-﻿using System;
-using System.Collections.Generic;
+﻿using System.Collections.Generic;
 using System.Linq;
-using ChatCommon;
 using ChatServer.Extensibility;
 
 namespace ChatServer.Domain
 {
     internal class ChatRepository : IChatRepository
     {
-        private readonly HashSet<IChat> chats = new HashSet<IChat>();
+        private readonly List<IChat> chats = new List<IChat>();
 
         public bool AddChat(IChat chat)
         {
-            try
-            {
-                chats.Add(chat);
-                return true;
-            }
-            catch (Exception)
+            if (chats.Any(storedChat => storedChat.Name == chat.Name))
             {
                 return false;
-            }
+            }    
+            
+            chats.Add(chat);
+            return true;
         }
 
         public IChat GetChat(string chatName) => chats.FirstOrDefault(storedChat => storedChat.Name == chatName);

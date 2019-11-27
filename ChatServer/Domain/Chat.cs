@@ -2,12 +2,13 @@
 using System;
 using System.Collections.Generic;
 using System.Linq;
+using System.Runtime.Serialization;
 
 namespace ChatServer.Domain
 {
     internal class Chat : IChat
     {
-        private readonly HashSet<User> users = new HashSet<User>();
+        private readonly List<User> users = new List<User>();
 
         public Chat(User creator, string name, byte[] aesKey)
         {
@@ -27,15 +28,13 @@ namespace ChatServer.Domain
 
         public bool AddUser(User user)
         {
-            try
-            {
-                users.Add(user);
-                return true;
-            }
-            catch (Exception exception)
+            if (users.Any(storedUser => storedUser.Name == user.Name))
             {
                 return false;
             }
+
+            users.Add(user);
+            return true;
         }
 
         public IReadOnlyCollection<User> GetUsers()
@@ -44,13 +43,14 @@ namespace ChatServer.Domain
         public bool RemoveUser(string userName)
         {
             User user = users.FirstOrDefault(storedUser => storedUser.Name == userName);
-            if (user != null)
+            if (user == null)
             {
-                users.Remove(user);
-                return true;
+                return false;
+
             }
 
-            return false;
+            users.Remove(user);
+            return true;
         }
     }
 }
