@@ -187,8 +187,6 @@ namespace ChatServer
             }
         }
 
-
-
         private void RegisterHandler(string requestInJson)
         {
             try
