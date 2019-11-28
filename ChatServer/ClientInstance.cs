@@ -196,10 +196,9 @@ namespace ChatServer
 
         private void CreateChatHandler(string requestInJson)
         {
+            CreateChatRequest request = JsonSerializer.Deserialize<CreateChatRequest>(requestInJson);
             try
-            {
-                CreateChatRequest request = JsonSerializer.Deserialize<CreateChatRequest>(requestInJson);
-
+            { 
                 User creator = server.UserRepository.GetByName(request.Sender);
 
                 if (creator == null || creator.State != UserState.Authorized)
@@ -222,8 +221,17 @@ namespace ChatServer
                 server.UserRepository.UpdateState(creator.Name, UserState.InChat);
 
                 server.ChatRepository.AddChat(newChat);
+
+                var response = new CreateChatResponse
+                {
+                    ChatName =  newChat.Name,
+                    Code = StatusCode.Ok,
+                    Key = newChat.Key,
+                    RequestId = request.Id,
+                };
+
                 SendMessageAesEncrypted(
-                    new CreateChatResponse(newChat.Name, newChat.GetUsers().Select(user => user.Name).ToArray(), key, StatusCode.Ok), 
+                    response, 
                     clientAesKey);
 
                 Console.WriteLine($"Chat created. ChatName - {newChat.Name}, Creator - {creator.Name}");
@@ -231,7 +239,14 @@ namespace ChatServer
             // todo: system exception should not be available to the client
             catch (Exception exception)
             {
-                SendMessageAesEncrypted(new CreateChatResponse("", new List<string>(), new byte[0],  StatusCode.Error, exception.Message), clientAesKey);
+                var errorResponse = new CreateChatResponse
+                {
+                    Code = StatusCode.Error,
+                    RequestId = request.Id,
+                    Message = exception.Message
+                };
+
+                SendMessageAesEncrypted(errorResponse, clientAesKey);
                 throw;
             }
         }
