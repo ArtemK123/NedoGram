@@ -5,7 +5,7 @@ namespace ChatCommon.Messages.Requests
     public class CreateChatRequest : Request
     {
         public CreateChatRequest(string chatName, string sender)
-            : base(sender, ClientAction.CreateChat)
+            : base(sender)
         {
             ChatName = chatName;
         }

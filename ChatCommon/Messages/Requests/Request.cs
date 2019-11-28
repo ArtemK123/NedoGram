@@ -6,12 +6,13 @@ namespace ChatCommon.Messages.Requests
     {
         public Request()
         {
+            MessageType = MessageType.Request;
         }
 
-        public Request(string sender, ClientAction action)
-            : base(sender)
+        public Request(string sender)
+            : this()
         {
-            Action = action;
+            Sender = sender;
         }
 
         public ClientAction Action { get; set; }

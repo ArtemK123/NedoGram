@@ -5,16 +5,13 @@ namespace ChatCommon.Messages.Responses
 {
     public class Response : Message
     {
-        public Response() : base("server")
+        public Response()
         {
+            Sender = "server";
+            MessageType = MessageType.Response;
         }
 
-        public Response(string sender) : base(sender)
-        {
-        }
-
-        public Response(StatusCode statusCode, ClientAction action, string message = "", string sender = "server")
-            : base(sender)
+        public Response(StatusCode statusCode, ClientAction action, string message = "") : this()
         {
             Code = statusCode;
             Message = message;

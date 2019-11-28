@@ -6,7 +6,7 @@ namespace ChatCommon.Messages
     public class AesKeyExchangeRequest : Request
     {
         public AesKeyExchangeRequest(byte[] key, byte[] iv, string sender) 
-            : base(sender, ClientAction.KeyExchange)
+            : base(sender)
         {
             Key = key;
             IV = iv;

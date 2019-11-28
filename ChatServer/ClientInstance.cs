@@ -138,6 +138,12 @@ namespace ChatServer
         private void LoginHandler(string requestInJson)
         {
             LoginRequest request = JsonSerializer.Deserialize<LoginRequest>(requestInJson);
+            
+            var response = new LoginResponse
+            {
+                RequestId = request.Id,
+            };
+
 
             bool successful;
             User storedUser = null;
@@ -154,13 +160,16 @@ namespace ChatServer
 
             if (successful)
             {
-                SendMessageAesEncrypted(new LoginResponse(StatusCode.Ok), clientAesKey);
+                SendMessageAesEncrypted(response, clientAesKey);
                 server.UserRepository.UpdateState(user.Name, UserState.Authorized);
                 Console.WriteLine($"{request.Sender} signed in");
             }
             else
             {
-                SendMessageAesEncrypted(new LoginResponse(StatusCode.Error, "Wrong email or password"), clientAesKey);
+                response.Message = "Wrong email or password";
+                response.Code = StatusCode.Error;
+
+                SendMessageAesEncrypted(response, clientAesKey);
                 throw new Exception($"{request.Sender} - unsuccessful try to sign in");
             }
         }

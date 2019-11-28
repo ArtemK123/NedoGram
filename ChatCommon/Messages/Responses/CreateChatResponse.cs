@@ -2,7 +2,7 @@
 {
     public class CreateChatResponse : Response
     {
-        public CreateChatResponse() : base("server") { }
+        public CreateChatResponse() { }
 
         public string ChatName { get; set; }
 

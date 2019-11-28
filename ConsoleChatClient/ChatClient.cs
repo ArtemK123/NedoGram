@@ -27,10 +27,10 @@ namespace ConsoleChatClient
         private byte[] serverKey;
         private byte[] chatKey;
         private UserState userState = UserState.Offline;
-        private string chatName = null;
+        private string chatName;
 
         private Dictionary<ClientAction, Action> userActionHandlers;
-        private Dictionary<ClientAction, Action<string>> responseHandlers;
+        private Dictionary<Guid, Action<string>> responseHandlers;
 
         public ChatClient(
             ITcpWrapper tcpClient,
@@ -208,20 +208,6 @@ namespace ConsoleChatClient
                 { ClientAction.GoToChatMenu, GoToChatRequestHandler },
                 { ClientAction.Exit, ExitRequestHandler }
             };
-
-            responseHandlers = new Dictionary<ClientAction, Action<string>>
-            {
-                { ClientAction.Login, LoginResponseHandler },
-                { ClientAction.Register, RegisterResponseHandler },
-                { ClientAction.ShowAllChats, ShowAllChatsResponseHandler },
-                { ClientAction.CreateChat, CreateChatResponseHandler },
-                { ClientAction.EnterChat, EnterChatResponseHandler },
-                { ClientAction.SendMessage, SendMessageResponseHandler },
-                { ClientAction.ShowUsers, ShowAllUsersResponseHandler },
-                { ClientAction.GoToMainMenu, GotoMainMenuResponseHandler },
-                { ClientAction.GoToChatMenu, GoToChatResponseHandler },
-                { ClientAction.Exit, ExitResponseHandler }
-            };
         }
 
         private void LoginRequestHandler()
@@ -236,7 +222,10 @@ namespace ConsoleChatClient
             loginRequest.Sender = UserName;
             loginRequest.Password = GetPasswordHash(password);
 
+            responseHandlers.Add(loginRequest.Id, LoginResponseHandler);
             SendMessageAesEncrypted(loginRequest, serverKey);
+
+            while (responseHandlers.ContainsKey(loginRequest.Id)) { }
         }
 
         private void LoginResponseHandler(string responseInJson)
@@ -275,7 +264,10 @@ namespace ConsoleChatClient
 
             var registerRequest = new RegisterRequest(userName, GetPasswordHash(password));
 
+            responseHandlers.Add(registerRequest.Id, LoginResponseHandler);
             SendMessageAesEncrypted(registerRequest, serverKey);
+
+            while (responseHandlers.ContainsKey(registerRequest.Id)) { }
         }
 
         private void RegisterResponseHandler(string responseInJson)
@@ -295,7 +287,12 @@ namespace ConsoleChatClient
 
         private void ShowAllChatsRequestHandler()
         {
-            SendMessageAesEncrypted(new ShowChatsRequest(UserName), serverKey);
+            var request = new ShowChatsRequest(UserName);
+
+            responseHandlers.Add(request.Id, LoginResponseHandler);
+            SendMessageAesEncrypted(request, serverKey);
+
+            while (responseHandlers.ContainsKey(request.Id)) { }
         }
 
         private void ShowAllChatsResponseHandler(string responseInJson)
@@ -319,7 +316,12 @@ namespace ConsoleChatClient
             Console.WriteLine(Environment.NewLine + "Write a chat name:");
             string newChatName = Console.ReadLine();
 
-            SendMessageAesEncrypted(new CreateChatRequest(newChatName, UserName), serverKey);
+            var request = new CreateChatRequest(newChatName, UserName);
+
+            responseHandlers.Add(request.Id, LoginResponseHandler);
+            SendMessageAesEncrypted(request, serverKey);
+
+            while (responseHandlers.ContainsKey(request.Id)) { }
         }
 
         private void CreateChatResponseHandler(string responseInJson)
@@ -468,13 +470,19 @@ namespace ConsoleChatClient
 
                     string messageInJson = ParseMessageToJson(rawMessage, serverKey);
 
-                    Response response = JsonSerializer.Deserialize<Response>(messageInJson);
+                    Message message = JsonSerializer.Deserialize<Message>(messageInJson);
 
-                    Console.WriteLine($"{response.Sender} - {response.Action}");
-                    responseHandlers[response.Action].Invoke(messageInJson);
+                    if (message.MessageType == MessageType.Response)
+                    {
+                        Response response = JsonSerializer.Deserialize<Response>(messageInJson);
+
+                        Console.WriteLine($"{response.Sender} - {response.Action}");
+                        responseHandlers[response.RequestId].Invoke(messageInJson);
+                        responseHandlers.Remove(response.RequestId);
+                    }
                 }
             }
-            catch (IOException ioException)
+            catch (IOException)
             {
                 Console.WriteLine("Connection is closed");
                 Dispose();

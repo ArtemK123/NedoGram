@@ -1,4 +1,5 @@
 ﻿using System;
+using ChatCommon.Constants;
 
 namespace ChatCommon.Messages
 {
@@ -6,15 +7,12 @@ namespace ChatCommon.Messages
     {
         protected Message()
         {
-        }
-
-        protected Message(string sender)
-        {
             Id = Guid.NewGuid();
-            Sender = sender;
         }
-
+        
         public Guid Id { get; set; }
+
+        public MessageType MessageType { get; set; }
 
         public string Sender { get; set; }
     }
