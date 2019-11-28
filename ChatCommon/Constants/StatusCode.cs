@@ -3,6 +3,7 @@
     public enum StatusCode
     {
         Ok = 200,
-        Error = 500
+        ClientError = 404,
+        ServerError = 500
     }
 }

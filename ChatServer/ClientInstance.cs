@@ -12,6 +12,7 @@ using ChatCommon.Messages;
 using ChatCommon.Messages.Requests;
 using ChatCommon.Messages.Responses;
 using ChatServer.Domain;
+using ChatServer.Domain.Exceptions;
 using ChatServer.Extensibility;
 
 namespace ChatServer
@@ -144,35 +145,49 @@ namespace ChatServer
                 RequestId = request.Id,
             };
 
-
-            bool successful;
-            User storedUser = null;
             try
             {
-                user = server.UserRepository.GetByName(request.Sender);
+                User storedUser = server.UserRepository.GetByName(request.Sender);
+                if (storedUser == null)
+                {
+                    throw new UserNotFoundException(request.Sender);
+                }
 
-                successful = user.Password == request.Password && user.State == UserState.Offline;
-            }
-            catch (Exception)
-            {
-                successful = false;
-            }
+                if (user.Password != request.Password)
+                {
+                    throw new WrongPasswordException(request.Sender, request.Password, storedUser.Password);
+                }
 
-            if (successful)
-            {
+                if (user.State == UserState.Offline)
+                {
+                    throw new WrongPasswordException(request.Sender, request.Password, storedUser.Password);
+                }
+
                 SendMessageAesEncrypted(response, clientAesKey);
                 server.UserRepository.UpdateState(user.Name, UserState.Authorized);
                 Console.WriteLine($"{request.Sender} signed in");
             }
-            else
+            catch (NedoGramException nedoGramException)
             {
-                response.Message = "Wrong email or password";
-                response.Code = StatusCode.Error;
+                response.Message = nedoGramException.Message;
+                response.Code = StatusCode.ClientError;
 
                 SendMessageAesEncrypted(response, clientAesKey);
-                throw new Exception($"{request.Sender} - unsuccessful try to sign in");
+
+                Console.WriteLine($"{request.Action}: {request.Sender} - {nedoGramException.Message}");
+            }
+            catch (Exception systemException)
+            {
+                response.Message = "Internal error";
+                response.Code = StatusCode.ServerError;
+
+                SendMessageAesEncrypted(response, clientAesKey);
+
+                Console.WriteLine($"{request.Action}: {request.Sender} - {systemException.Message}");
             }
         }
+
+
 
         private void RegisterHandler(string requestInJson)
         {
@@ -191,7 +206,7 @@ namespace ChatServer
             }
             catch (Exception exception)
             {
-                SendMessageAesEncrypted(new RegisterResponse(StatusCode.Error, "", "Error while signing up"), clientAesKey);
+                SendMessageAesEncrypted(new RegisterResponse(StatusCode.ServerError, "", "Error while signing up"), clientAesKey);
                 throw new Exception($"{user.Name} - error occured while signing up: {exception}");
             }
         }
@@ -250,7 +265,7 @@ namespace ChatServer
             {
                 var errorResponse = new CreateChatResponse
                 {
-                    Code = StatusCode.Error,
+                    Code = StatusCode.ServerError,
                     RequestId = request.Id,
                     Message = exception.Message
                 };
