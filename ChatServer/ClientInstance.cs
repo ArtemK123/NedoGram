@@ -38,7 +38,7 @@ namespace ChatServer
             this.coding = coding;
             aesEncryption = new AesEncryption();
             user = new User();
-            RequestHandlers = new Dictionary<ClientAction, Action<string>>()
+            RequestHandlers = new Dictionary<ClientAction, Action<string>>
             {
                 { ClientAction.Login, LoginHandler },
                 { ClientAction.Register, RegisterHandler },
@@ -189,23 +189,41 @@ namespace ChatServer
 
         private void RegisterHandler(string requestInJson)
         {
+            RegisterRequest registerRequest = JsonSerializer.Deserialize<RegisterRequest>(requestInJson);
+
+            var response = new RegisterResponse
+            {
+                RequestId = registerRequest.Id
+            };
+
             try
             {
-                RegisterRequest registerRequest = JsonSerializer.Deserialize<RegisterRequest>(requestInJson);
                 User newUser = new User(registerRequest.Sender, registerRequest.Password, UserState.Authorized);
-                if (!server.UserRepository.Add(newUser))
-                {
-                    throw new NedoGramException("User with this name already exist");
-                }
+                server.UserRepository.Add(newUser);
 
-                SendMessageAesEncrypted(new RegisterResponse(StatusCode.Ok, newUser.Name), clientAesKey);
+                response.Code = StatusCode.Ok;
+                response.UserName = newUser.Name;
+
                 user = newUser;
                 Console.WriteLine($"{user.Name} signed up successfully.");
             }
+            catch (NedoGramException nedoGramException)
+            {
+                response.Code = StatusCode.ClientError;
+                response.Message = nedoGramException.Message;
+
+                Console.WriteLine($"{registerRequest.Action}: {registerRequest.Sender} - {nedoGramException.Message}");
+            }
             catch (Exception exception)
             {
-                SendMessageAesEncrypted(new RegisterResponse(StatusCode.ServerError, "", "Error while signing up"), clientAesKey);
-                throw new Exception($"{user.Name} - error occured while signing up: {exception}");
+                response.Code = StatusCode.ServerError;
+                response.Message = "Internal error";
+
+                Console.WriteLine($"{registerRequest.Action}: {registerRequest.Sender} - {exception.Message}");
+            }
+            finally
+            {
+                SendMessageAesEncrypted(response, clientAesKey);
             }
         }
 

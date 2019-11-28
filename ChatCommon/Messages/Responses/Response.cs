@@ -11,16 +11,7 @@ namespace ChatCommon.Messages.Responses
             MessageType = MessageType.Response;
         }
 
-        public Response(StatusCode statusCode, ClientAction action, string message = "") : this()
-        {
-            Code = statusCode;
-            Message = message;
-            Action = action;
-        }
-
         public StatusCode Code { get; set; }
-
-        public ClientAction Action { get; set; }
 
         public Guid RequestId { get; set; }
 
