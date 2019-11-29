@@ -1,16 +1,10 @@
-﻿using ChatCommon.Constants;
-
-namespace ChatCommon.Messages.Responses
+﻿namespace ChatCommon.Messages.Responses
 {
     public class RegisterResponse : Response
     {
-        public RegisterResponse(StatusCode code, string userName, string message = "") 
-            : base(code, ClientAction.Register, message)
+        public RegisterResponse()
         {
-            UserName = userName;
         }
-
-        public RegisterResponse() { }
 
         public string UserName { get; set; }
     }

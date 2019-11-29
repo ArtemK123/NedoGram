@@ -5,7 +5,7 @@ namespace ChatServer.Domain.Exceptions
     internal class UserNotFoundException : NedoGramException
     {
         public UserNotFoundException(string userName)
-            : base("User not found")
+            : base("User is not found")
         {
             UserName = userName;
         }

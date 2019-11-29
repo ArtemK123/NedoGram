@@ -1,23 +1,29 @@
 ﻿using System.Collections.Generic;
 using System.Linq;
 using ChatCommon;
+using ChatServer.Domain.Entities;
+using ChatServer.Domain.Exceptions;
 using ChatServer.Extensibility;
 
-namespace ChatServer.Domain
+namespace ChatServer.Domain.Repositories
 {
     internal class UserRepository : IUserRepository
     {
         private readonly List<User> users = new List<User>();
 
-        public bool Add(User user)
+        public void Add(User user)
         {
-            if (user.Name.ToLower() == "server" || users.Any(storedUser => storedUser.Name == user.Name))
+            if (user.Name.ToLower() == "server")
             {
-                return false;
+                throw new UserNamedAsServerException();
+            }
+
+            if (users.Any(storedUser => storedUser.Name == user.Name))
+            {
+                throw new UserAlreadyExistsException(user.Name);
             }
 
             users.Add(user);
-            return true;
         }
 
         public User GetByName(string name)
@@ -30,16 +36,15 @@ namespace ChatServer.Domain
             return users.Any(user => user.Name == userName);
         }
 
-        public bool UpdateState(string userName, UserState state)
+        public void UpdateState(string userName, UserState state)
         {
             User user = users.FirstOrDefault(storedUser => storedUser.Name == userName);
 
             if (user == null)
             {
-                return false;
+                throw new UserNotFoundException(userName);
             }
             user.State = state;
-            return true;
         }
     }
 }

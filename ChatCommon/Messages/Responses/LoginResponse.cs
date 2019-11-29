@@ -1,15 +1,11 @@
-﻿using ChatCommon.Constants;
-
-namespace ChatCommon.Messages.Responses
+﻿namespace ChatCommon.Messages.Responses
 {
     public class LoginResponse : Response
     {
-        public LoginResponse(StatusCode code, string message = "") : base(code, ClientAction.Login, message) { }
-
-        public LoginResponse()
+        public LoginResponse() 
         {
-            Sender = "server";
-            Action = ClientAction.Login;
         }
+
+        public string UserName { get; set; }
     }
 }

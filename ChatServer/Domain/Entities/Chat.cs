@@ -1,10 +1,10 @@
-﻿using ChatServer.Extensibility;
-using System;
+﻿using System;
 using System.Collections.Generic;
 using System.Linq;
-using System.Runtime.Serialization;
+using ChatServer.Domain.Exceptions;
+using ChatServer.Extensibility;
 
-namespace ChatServer.Domain
+namespace ChatServer.Domain.Entities
 {
     internal class Chat : IChat
     {
@@ -26,31 +26,29 @@ namespace ChatServer.Domain
 
         public byte[] Key { get; set; }
 
-        public bool AddUser(User user)
+        public void AddUser(User user)
         {
             if (users.Any(storedUser => storedUser.Name == user.Name))
             {
-                return false;
+                throw new UserAlreadyExistsException(user.Name);
             }
 
             users.Add(user);
-            return true;
         }
 
         public IReadOnlyCollection<User> GetUsers()
             => users.ToArray();
 
-        public bool RemoveUser(string userName)
+        public void RemoveUser(string userName)
         {
             User user = users.FirstOrDefault(storedUser => storedUser.Name == userName);
             if (user == null)
             {
-                return false;
+                throw new UserNotFoundException(userName);
 
             }
 
             users.Remove(user);
-            return true;
         }
     }
 }

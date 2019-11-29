@@ -1,13 +1,13 @@
 ﻿using ChatCommon;
-using ChatServer.Domain;
+using ChatServer.Domain.Entities;
 
 namespace ChatServer.Extensibility
 {
     internal interface IUserRepository
     {
-        bool Add(User user);
+        void Add(User user);
 
-        bool UpdateState(string userName, UserState state);
+        void UpdateState(string userName, UserState state);
 
         User GetByName(string name);
 

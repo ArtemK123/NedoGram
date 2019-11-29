@@ -30,7 +30,7 @@ namespace ConsoleChatClient
         private string chatName;
 
         private Dictionary<ClientAction, Action> userActionHandlers;
-        private Dictionary<Guid, Action<string>> responseHandlers;
+        private readonly Dictionary<Guid, Action<string>> responseHandlers = new Dictionary<Guid, Action<string>>();
 
         public ChatClient(
             ITcpWrapper tcpClient,
@@ -264,7 +264,7 @@ namespace ConsoleChatClient
 
             var registerRequest = new RegisterRequest(userName, GetPasswordHash(password));
 
-            responseHandlers.Add(registerRequest.Id, LoginResponseHandler);
+            responseHandlers.Add(registerRequest.Id, RegisterResponseHandler);
             SendMessageAesEncrypted(registerRequest, serverKey);
 
             while (responseHandlers.ContainsKey(registerRequest.Id)) { }
@@ -287,9 +287,9 @@ namespace ConsoleChatClient
 
         private void ShowAllChatsRequestHandler()
         {
-            var request = new ShowChatsRequest(UserName);
+            var request = new ShowAllChatsRequest(UserName);
 
-            responseHandlers.Add(request.Id, LoginResponseHandler);
+            responseHandlers.Add(request.Id, ShowAllChatsResponseHandler);
             SendMessageAesEncrypted(request, serverKey);
 
             while (responseHandlers.ContainsKey(request.Id)) { }
@@ -318,7 +318,7 @@ namespace ConsoleChatClient
 
             var request = new CreateChatRequest(newChatName, UserName);
 
-            responseHandlers.Add(request.Id, LoginResponseHandler);
+            responseHandlers.Add(request.Id, CreateChatResponseHandler);
             SendMessageAesEncrypted(request, serverKey);
 
             while (responseHandlers.ContainsKey(request.Id)) { }
@@ -405,10 +405,8 @@ namespace ConsoleChatClient
         {
             //todo: add handling of an unsuccessful key exchange
 
-            // read server credentials
             ReadServerPublicKey();
 
-            // send aes key and iv to the server
             AesKeyExchangeRequest keyExchangeRequest = new AesKeyExchangeRequest(aesEncryption.GetKey(), aesEncryption.GetIV(), UserName);
 
             tcpClient.Send(rsa.Encrypt(coding.GetBytes(JsonSerializer.Serialize(keyExchangeRequest)), false));
@@ -476,7 +474,6 @@ namespace ConsoleChatClient
                     {
                         Response response = JsonSerializer.Deserialize<Response>(messageInJson);
 
-                        Console.WriteLine($"{response.Sender} - {response.Action}");
                         responseHandlers[response.RequestId].Invoke(messageInJson);
                         responseHandlers.Remove(response.RequestId);
                     }

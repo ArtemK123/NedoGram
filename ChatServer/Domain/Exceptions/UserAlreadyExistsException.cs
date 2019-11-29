@@ -2,9 +2,9 @@
 
 namespace ChatServer.Domain.Exceptions
 {
-    internal class UserAlreadyExistException : NedoGramException
+    internal class UserAlreadyExistsException : NedoGramException
     {
-        public UserAlreadyExistException(string userName) 
+        public UserAlreadyExistsException(string userName) 
             : base("User already exists")
         {
             UserName = userName;

@@ -3,9 +3,9 @@ using ChatCommon.Constants;
 
 namespace ChatCommon.Messages
 {
-    public abstract class Message
+    public class Message
     {
-        protected Message()
+        public Message()
         {
             Id = Guid.NewGuid();
         }

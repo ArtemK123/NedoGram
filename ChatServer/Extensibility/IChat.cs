@@ -3,6 +3,7 @@ using ChatServer.Domain;
 using System;
 using System.Collections.Generic;
 using ChatCommon.Messages;
+using ChatServer.Domain.Entities;
 
 namespace ChatServer.Extensibility
 {
@@ -18,8 +19,8 @@ namespace ChatServer.Extensibility
 
         IReadOnlyCollection<User> GetUsers();
 
-        bool AddUser(User user);
+        void AddUser(User user);
 
-        bool RemoveUser(string userName);
+        void RemoveUser(string userName);
     }
 }

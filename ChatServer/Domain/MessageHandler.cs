@@ -20,12 +20,12 @@ namespace ChatServer.Domain
         {
             IChat chat = server.ChatRepository.GetChat(chatName);
             IEnumerable<ClientInstance> clientsInChat = server.clients.Where(
-                client => client.user.CurrentChat.Id == chat.Id 
-                && client.user.State == UserState.InChat);
+                client => client.CurrentUser.CurrentChat.Id == chat.Id 
+                && client.CurrentUser.State == UserState.InChat);
         
             foreach (ClientInstance client in clientsInChat)
             {
-                client.SendMessageAesEncrypted(message, client.clientAesKey);
+                client.SendMessageAesEncrypted(message, client.ClientAesKey);
             }
         }
 

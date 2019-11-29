@@ -1,7 +1,6 @@
 ﻿using ChatCommon.Constants;
-using ChatCommon.Messages.Requests;
 
-namespace ChatCommon.Messages
+namespace ChatCommon.Messages.Requests
 {
     public class AesKeyExchangeRequest : Request
     {
@@ -10,6 +9,7 @@ namespace ChatCommon.Messages
         {
             Key = key;
             IV = iv;
+            Action = ClientAction.KeyExchange;
         }
 
         public AesKeyExchangeRequest()

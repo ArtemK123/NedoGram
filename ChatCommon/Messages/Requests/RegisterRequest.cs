@@ -8,10 +8,12 @@ namespace ChatCommon.Messages.Requests
             : base(sender)
         {
             Password = password;
+            Action = ClientAction.Register;
         }
 
         public RegisterRequest()
         {
+            Action = ClientAction.Register;
         }
 
         public string Password { get; set; }

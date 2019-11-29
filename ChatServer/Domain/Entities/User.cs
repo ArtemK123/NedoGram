@@ -1,7 +1,7 @@
 ﻿using ChatCommon;
 using ChatServer.Extensibility;
 
-namespace ChatServer.Domain
+namespace ChatServer.Domain.Entities
 {
     internal class User
     {

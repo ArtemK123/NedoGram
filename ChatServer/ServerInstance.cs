@@ -7,6 +7,7 @@ using System.Text;
 using System.Threading;
 using ChatCommon;
 using ChatServer.Domain;
+using ChatServer.Domain.Repositories;
 using ChatServer.Extensibility;
 
 namespace ChatServer

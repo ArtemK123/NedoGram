@@ -11,7 +11,7 @@ using ChatCommon.Extensibility;
 using ChatCommon.Messages;
 using ChatCommon.Messages.Requests;
 using ChatCommon.Messages.Responses;
-using ChatServer.Domain;
+using ChatServer.Domain.Entities;
 using ChatServer.Domain.Exceptions;
 using ChatServer.Extensibility;
 
@@ -21,12 +21,12 @@ namespace ChatServer
     {
         protected internal Guid Id { get; }
 
-        internal User user;
+        internal User CurrentUser;
         internal readonly ICoding coding;
         private readonly ITcpWrapper tcpClient;
         private readonly ServerInstance server;
         private readonly AesEncryption aesEncryption;
-        internal byte[] clientAesKey;
+        internal byte[] ClientAesKey;
 
         internal readonly Dictionary<ClientAction, Action<string>> RequestHandlers;
 
@@ -37,7 +37,7 @@ namespace ChatServer
             this.tcpClient = tcpClient;
             this.coding = coding;
             aesEncryption = new AesEncryption();
-            user = new User();
+            CurrentUser = new User();
             RequestHandlers = new Dictionary<ClientAction, Action<string>>
             {
                 { ClientAction.Login, LoginHandler },
@@ -63,9 +63,9 @@ namespace ChatServer
 
                 while (true)
                 {
-                    byte[] rawMessage = tcpClient.GetMessage();
+                     byte[] rawMessage = tcpClient.GetMessage();
 
-                    string messageInJson = ParseMessageToJson(rawMessage, clientAesKey);
+                    string messageInJson = ParseMessageToJson(rawMessage, ClientAesKey);
 
                     Request request = JsonSerializer.Deserialize<Request>(messageInJson);
 
@@ -75,10 +75,10 @@ namespace ChatServer
             }
             catch (IOException)
             {
-                Console.WriteLine($"User left. Username: {user?.Name}; id: {Id}");
-                if (user != null && user.State == UserState.Authorized)
+                Console.WriteLine($"User left. Username: {CurrentUser?.Name}; id: {Id}");
+                if (CurrentUser != null && CurrentUser.State == UserState.Authorized)
                 {
-                    server.UserRepository.UpdateState(user.Name, UserState.Offline);
+                    server.UserRepository.UpdateState(CurrentUser.Name, UserState.Offline);
                 }
 
                 server.RemoveConnection(this);
@@ -121,12 +121,15 @@ namespace ChatServer
                     aesEncryption.SetKey(aesKeyExchangeRequest.Key);
                     aesEncryption.SetIV(aesKeyExchangeRequest.IV);
 
-                    clientAesKey = aesEncryption.GetKey();
+                    ClientAesKey = aesEncryption.GetKey();
 
-                    AesKeyExchangeResponse response = new AesKeyExchangeResponse(StatusCode.Ok);
+                    AesKeyExchangeResponse response = new AesKeyExchangeResponse {
+                        Code = StatusCode.Ok,
+                        RequestId = aesKeyExchangeRequest.Id
+                    };
 
-                    SendMessageAesEncrypted(response, clientAesKey);
-                    user.State = UserState.Connected;
+                    SendMessageAesEncrypted(response, ClientAesKey);
+                    CurrentUser.State = UserState.Connected;
                     return;
                 }
                 catch (Exception exception)
@@ -142,7 +145,7 @@ namespace ChatServer
             
             var response = new LoginResponse
             {
-                RequestId = request.Id,
+                RequestId = request.Id
             };
 
             try
@@ -153,26 +156,29 @@ namespace ChatServer
                     throw new UserNotFoundException(request.Sender);
                 }
 
-                if (user.Password != request.Password)
+                if (storedUser.Password != request.Password)
                 {
                     throw new WrongPasswordException(request.Sender, request.Password, storedUser.Password);
                 }
 
-                if (user.State == UserState.Offline)
+                if (storedUser.State != UserState.Offline)
                 {
-                    throw new WrongPasswordException(request.Sender, request.Password, storedUser.Password);
+                    throw new UserAlreadySignedInException(request.Sender);
                 }
 
-                SendMessageAesEncrypted(response, clientAesKey);
-                server.UserRepository.UpdateState(user.Name, UserState.Authorized);
+                server.UserRepository.UpdateState(storedUser.Name, UserState.Authorized);
                 Console.WriteLine($"{request.Sender} signed in");
+
+                response.Code = StatusCode.Ok;
+                response.UserName = storedUser.Name;
+                SendMessageAesEncrypted(response, ClientAesKey);
             }
             catch (NedoGramException nedoGramException)
             {
                 response.Message = nedoGramException.Message;
                 response.Code = StatusCode.ClientError;
 
-                SendMessageAesEncrypted(response, clientAesKey);
+                SendMessageAesEncrypted(response, ClientAesKey);
 
                 Console.WriteLine($"{request.Action}: {request.Sender} - {nedoGramException.Message}");
             }
@@ -181,7 +187,7 @@ namespace ChatServer
                 response.Message = "Internal error";
                 response.Code = StatusCode.ServerError;
 
-                SendMessageAesEncrypted(response, clientAesKey);
+                SendMessageAesEncrypted(response, ClientAesKey);
 
                 Console.WriteLine($"{request.Action}: {request.Sender} - {systemException.Message}");
             }
@@ -204,8 +210,8 @@ namespace ChatServer
                 response.Code = StatusCode.Ok;
                 response.UserName = newUser.Name;
 
-                user = newUser;
-                Console.WriteLine($"{user.Name} signed up successfully.");
+                CurrentUser = newUser;
+                Console.WriteLine($"{CurrentUser.Name} signed up successfully.");
             }
             catch (NedoGramException nedoGramException)
             {
@@ -223,15 +229,23 @@ namespace ChatServer
             }
             finally
             {
-                SendMessageAesEncrypted(response, clientAesKey);
+                SendMessageAesEncrypted(response, ClientAesKey);
             }
         }
 
         private void ShowAllChatsHandler(string requestInJson)
         {
+            ShowAllChatsRequest request = JsonSerializer.Deserialize<ShowAllChatsRequest>(requestInJson);
             IReadOnlyCollection<string> chatNames = server.ChatRepository.GetChats().Select(chat => chat.Name).ToArray();
 
-            SendMessageAesEncrypted(new ShowAllChatsResponse(chatNames, StatusCode.Ok), clientAesKey);
+            var response = new ShowAllChatsResponse
+            {
+                Code = StatusCode.Ok,
+                ChatNames = chatNames,
+                RequestId = request.Id
+            };
+
+            SendMessageAesEncrypted(response, ClientAesKey);
         }
 
         private void CreateChatHandler(string requestInJson)
@@ -257,7 +271,7 @@ namespace ChatServer
                 IChat newChat = new Chat(creator, request.ChatName, key);
                 newChat.AddUser(creator);
 
-                user.State = UserState.InChat;
+                CurrentUser.State = UserState.InChat;
                 server.UserRepository.UpdateState(creator.Name, UserState.InChat);
 
                 server.ChatRepository.AddChat(newChat);
@@ -272,7 +286,7 @@ namespace ChatServer
 
                 SendMessageAesEncrypted(
                     response, 
-                    clientAesKey);
+                    ClientAesKey);
 
                 Console.WriteLine($"Chat created. ChatName - {newChat.Name}, Creator - {creator.Name}");
             }
@@ -286,7 +300,7 @@ namespace ChatServer
                     Message = exception.Message
                 };
 
-                SendMessageAesEncrypted(errorResponse, clientAesKey);
+                SendMessageAesEncrypted(errorResponse, ClientAesKey);
                 throw;
             }
         }
@@ -314,9 +328,9 @@ namespace ChatServer
 
         private void ExitChatHandler(Message message)
         {
-            user.CurrentChat.RemoveUser(user.Name);
-            user.CurrentChat = null;
-            server.UserRepository.UpdateState(user.Name, UserState.Authorized);
+            CurrentUser.CurrentChat.RemoveUser(CurrentUser.Name);
+            CurrentUser.CurrentChat = null;
+            server.UserRepository.UpdateState(CurrentUser.Name, UserState.Authorized);
             //SendSuccessResponse();
         }
 
