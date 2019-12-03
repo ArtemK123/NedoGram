@@ -9,6 +9,7 @@ using ChatCommon.Encryption;
 using ChatCommon.Exceptions;
 using ChatCommon.Extensibility;
 using ChatCommon.Messages;
+using ChatCommon.Messages.Notifications;
 using ChatCommon.Messages.Requests;
 using ChatCommon.Messages.Responses;
 using ChatServer.Domain.Entities;
@@ -21,7 +22,7 @@ namespace ChatServer
     {
         protected internal Guid Id { get; }
 
-        internal User CurrentUser;
+        internal string CurrentUserName;
         internal readonly ICoding coding;
         private readonly ITcpWrapper tcpClient;
         private readonly ServerInstance server;
@@ -37,7 +38,6 @@ namespace ChatServer
             this.tcpClient = tcpClient;
             this.coding = coding;
             aesEncryption = new AesEncryption();
-            CurrentUser = new User();
             RequestHandlers = new Dictionary<ClientAction, Action<string>>
             {
                 { ClientAction.Login, LoginHandler },
@@ -47,6 +47,7 @@ namespace ChatServer
                 { ClientAction.EnterChat, EnterChatHandler },
                 { ClientAction.ShowUsersInChat, ShowUsersInChatHandler },
                 { ClientAction.GoToMainMenu, GoToMainMenuHandler },
+                { ClientAction.SendMessage, MessageHandler }
             };
         }
 
@@ -76,10 +77,10 @@ namespace ChatServer
             }
             catch (IOException)
             {
-                Console.WriteLine($"User left. Username: {CurrentUser?.Name}; id: {Id}");
-                if (CurrentUser != null && CurrentUser.State == UserState.Authorized)
+                Console.WriteLine($"User left. Username: {CurrentUserName}; id: {Id}");
+                if (CurrentUserName != null)
                 {
-                    server.UserRepository.UpdateState(CurrentUser.Name, UserState.Offline);
+                    server.UserRepository.UpdateState(CurrentUserName, UserState.Offline);
                 }
 
                 server.RemoveConnection(this);
@@ -130,7 +131,6 @@ namespace ChatServer
                     };
 
                     SendMessageAesEncrypted(response, ClientAesKey);
-                    CurrentUser.State = UserState.Connected;
                     return;
                 }
                 catch (Exception exception)
@@ -167,8 +167,7 @@ namespace ChatServer
                     throw new UserAlreadySignedInException(request.Sender);
                 }
 
-                CurrentUser = storedUser;
-                CurrentUser.State = UserState.Authorized;
+                CurrentUserName = storedUser.Name;
                 server.UserRepository.UpdateState(storedUser.Name, UserState.Authorized);
                 Console.WriteLine($"{request.Sender} signed in");
 
@@ -213,8 +212,8 @@ namespace ChatServer
                 response.Code = StatusCode.Ok;
                 response.UserName = newUser.Name;
 
-                CurrentUser = newUser;
-                Console.WriteLine($"{CurrentUser.Name} signed up successfully.");
+                CurrentUserName = newUser.Name;
+                Console.WriteLine($"{CurrentUserName} signed up successfully.");
             }
             catch (NedoGramException nedoGramException)
             {
@@ -274,7 +273,6 @@ namespace ChatServer
                 IChat newChat = new Chat(creator, request.ChatName, key);
                 newChat.AddUser(creator);
 
-                CurrentUser.State = UserState.InChat;
                 server.UserRepository.UpdateState(creator.Name, UserState.InChat);
 
                 server.ChatRepository.AddChat(newChat);
@@ -451,11 +449,17 @@ namespace ChatServer
             }
         }
 
-        private void MessageHandler(Message message, byte[] rawMessage)
+        private void MessageHandler(string requestInJson)
         {
-            //server.MessageSender.SendToChat(message.Headers["chat"], message);
+            SendMessageRequest request = JsonSerializer.Deserialize<SendMessageRequest>(requestInJson);
 
-            //server.BroadcastMessage(rawMessage, this);
+            Notification notification = new Notification
+            {
+                Sender = request.Sender,
+                EncryptedMessage = request.EncryptedMessage
+            };
+
+            server.NotificationSender.SendToChat(request.ChatName, notification);
         }
 
         private string ParseMessageToJson(byte[] rawMessage, byte[] aesKey)

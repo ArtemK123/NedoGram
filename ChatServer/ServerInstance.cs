@@ -21,11 +21,11 @@ namespace ChatServer
 
         internal readonly IUserRepository UserRepository = new UserRepository();
         internal readonly IChatRepository ChatRepository = new ChatRepository();
-        internal readonly IMessageSenderService MessageSender;
+        internal readonly INotificationSender NotificationSender;
 
         internal ServerInstance()
         {
-            MessageSender = new MessageHandler(this);
+            NotificationSender = new NotificationSender(this);
 
         }
 

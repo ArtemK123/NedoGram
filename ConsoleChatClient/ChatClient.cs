@@ -10,6 +10,7 @@ using ChatCommon.Encryption;
 using ChatCommon.Exceptions;
 using ChatCommon.Extensibility;
 using ChatCommon.Messages;
+using ChatCommon.Messages.Notifications;
 using ChatCommon.Messages.Requests;
 using ChatCommon.Messages.Responses;
 using ConsoleChatClient.Domain;
@@ -190,6 +191,42 @@ namespace ConsoleChatClient
                         break;
                     }
                 }
+            }
+        }
+
+        private void ReceiveMessage()
+        {
+            try
+            {
+                while (true)
+                {
+                    byte[] rawMessage = tcpClient.GetMessage();
+
+                    string messageInJson = ParseMessageToJson(rawMessage, serverKey);
+
+                    Message message = JsonSerializer.Deserialize<Message>(messageInJson);
+
+                    if (message.MessageType == MessageType.Response)
+                    {
+                        Response response = JsonSerializer.Deserialize<Response>(messageInJson);
+
+                        responseHandlers[response.RequestId].Invoke(messageInJson);
+                        responseHandlers.Remove(response.RequestId);
+                    }
+                    else if (message.MessageType == MessageType.Notification)
+                    {
+                        NotificationHandler(messageInJson);
+                    }
+                }
+            }
+            catch (IOException)
+            {
+                Console.WriteLine("Connection is closed");
+                Dispose();
+            }
+            catch (Exception exception)
+            {
+                Console.WriteLine($"Error = {exception.Message}");
             }
         }
 
@@ -374,12 +411,40 @@ namespace ConsoleChatClient
 
         private void SendMessageRequestHandler()
         {
-            throw new NotImplementedException();
+            Console.WriteLine(Environment.NewLine + "Write your messages");
+            Console.WriteLine("Type ~ to exit");
+
+            Console.Write(">");
+            string input = Console.ReadLine();
+
+            while (input != "~")
+            {
+                aesEncryption.SetKey(chatKey);
+                byte[] encryptedMessage = aesEncryption.Encrypt(coding.GetBytes(input));
+
+                SendMessageRequest request = new SendMessageRequest
+                {
+                    ChatName = chatName,
+                    Sender = UserName,
+                    EncryptedMessage = encryptedMessage
+                };
+
+                SendMessageAesEncrypted(request, serverKey);
+
+                Console.Write(">");
+                input = Console.ReadLine();
+            }
         }
 
-        private void SendMessageResponseHandler(string responseInJson)
+        private void NotificationHandler(string notificationInJson)
         {
-            throw new NotImplementedException();
+            Notification notification = JsonSerializer.Deserialize<Notification>(notificationInJson);
+
+            aesEncryption.SetKey(chatKey);
+
+            string decryptedMessage = coding.Decode(aesEncryption.Decrypt(notification.EncryptedMessage));
+            
+            Console.WriteLine($"{notification.Sender}: {decryptedMessage}");
         }
 
         private void ShowUsersInChatRequestHandler()
@@ -497,38 +562,6 @@ namespace ConsoleChatClient
             using (var md5 = new MD5CryptoServiceProvider())
             {
                 return Convert.ToBase64String(md5.ComputeHash(coding.GetBytes(password)));
-            }
-        }
-
-        private void ReceiveMessage()
-        {
-            try
-            {
-                while (true)
-                {
-                    byte[] rawMessage = tcpClient.GetMessage();
-
-                    string messageInJson = ParseMessageToJson(rawMessage, serverKey);
-
-                    Message message = JsonSerializer.Deserialize<Message>(messageInJson);
-
-                    if (message.MessageType == MessageType.Response)
-                    {
-                        Response response = JsonSerializer.Deserialize<Response>(messageInJson);
-
-                        responseHandlers[response.RequestId].Invoke(messageInJson);
-                        responseHandlers.Remove(response.RequestId);
-                    }
-                }
-            }
-            catch (IOException)
-            {
-                Console.WriteLine("Connection is closed");
-                Dispose();
-            }
-            catch (Exception exception)
-            {
-                Console.WriteLine($"Error = {exception.Message}");
             }
         }
     }
