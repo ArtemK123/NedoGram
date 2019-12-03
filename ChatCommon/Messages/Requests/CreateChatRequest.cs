@@ -8,6 +8,7 @@ namespace ChatCommon.Messages.Requests
             : base(sender)
         {
             ChatName = chatName;
+            Action = ClientAction.CreateChat;
         }
 
         public CreateChatRequest()

@@ -6,7 +6,9 @@ namespace ChatCommon.Messages.Requests
     {
         public ShowAllChatsRequest(string sender)
             : base(sender)
-        {}
+        {
+            Action = ClientAction.ShowAllChats;
+        }
 
         public ShowAllChatsRequest() { }
     }

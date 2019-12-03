@@ -132,7 +132,7 @@ namespace ConsoleChatClient
         {
             while (true)
             {
-                Console.WriteLine(Environment.NewLine + ConstantsStore.MainMenuTitle + Environment.NewLine + ConstantsStore.MainMenu);
+                Console.WriteLine(Environment.NewLine + ConstantsStore.MainMenuTitle + Environment.NewLine + ConstantsStore.MainMenu + Environment.NewLine);
                 string input = Console.ReadLine();
 
                 switch (input)
@@ -167,7 +167,7 @@ namespace ConsoleChatClient
             while (true)
             {
                 Console.WriteLine(Environment.NewLine + chatName);
-                Console.WriteLine(ConstantsStore.ChatMenu);
+                Console.WriteLine(ConstantsStore.ChatMenu + Environment.NewLine);
 
                 string input = Console.ReadLine();
                 switch (input)
@@ -178,7 +178,7 @@ namespace ConsoleChatClient
                     }
                     case "2":
                     {
-                        return ClientAction.ShowUsers;
+                        return ClientAction.ShowUsersInChat;
                     }
                     case "0":
                     {
@@ -203,9 +203,8 @@ namespace ConsoleChatClient
                 { ClientAction.CreateChat, CreateChatRequestHandler },
                 { ClientAction.EnterChat, EnterChatRequestHandler },
                 { ClientAction.SendMessage, SendMessageRequestHandler },
-                { ClientAction.ShowUsers, ShowAllUsersRequestHandler },
+                { ClientAction.ShowUsersInChat, ShowUsersInChatRequestHandler },
                 { ClientAction.GoToMainMenu, GotoMainMenuRequestHandler },
-                { ClientAction.GoToChatMenu, GoToChatRequestHandler },
                 { ClientAction.Exit, ExitRequestHandler }
             };
         }
@@ -343,12 +342,34 @@ namespace ConsoleChatClient
         
         private void EnterChatRequestHandler()
         {
-            Console.WriteLine("EnterChatHandler");
+            Console.WriteLine(Environment.NewLine + "Write a chat name:");
+            chatName = Console.ReadLine();
+
+            var request = new EnterChatRequest
+            {
+                ChatName = chatName,
+                Sender = UserName
+            };
+
+            responseHandlers.Add(request.Id, EnterChatResponseHandler);
+            SendMessageAesEncrypted(request, serverKey);
+
+            while (responseHandlers.ContainsKey(request.Id)) { }
         }
 
         private void EnterChatResponseHandler(string responseInJson)
         {
-            Console.WriteLine("EnterChatHandler");
+            EnterChatResponse response = JsonSerializer.Deserialize<EnterChatResponse>(responseInJson);
+
+            if (response.Code != StatusCode.Ok)
+            {
+                Console.WriteLine(response.Message);
+                chatName = null;
+                return;
+            }
+
+            chatKey = response.Key;
+            userState = UserState.InChat;
         }
 
         private void SendMessageRequestHandler()
@@ -361,42 +382,63 @@ namespace ConsoleChatClient
             throw new NotImplementedException();
         }
 
-        private void ShowAllUsersRequestHandler()
+        private void ShowUsersInChatRequestHandler()
         {
-            throw new NotImplementedException();
+            var request = new ShowUsersInChatRequest
+            {
+                ChatName = chatName,
+                Sender = UserName
+            };
+
+            responseHandlers.Add(request.Id, ShowUsersInChatResponseHandler);
+            SendMessageAesEncrypted(request, serverKey);
+
+            while (responseHandlers.ContainsKey(request.Id)) { }
         }
 
-        private void ShowAllUsersResponseHandler(string responseInJson)
+        private void ShowUsersInChatResponseHandler (string responseInJson)
         {
-            throw new NotImplementedException();
+            ShowUsersInChatResponse response = JsonSerializer.Deserialize<ShowUsersInChatResponse>(responseInJson);
+
+            if (response.Code != StatusCode.Ok)
+            {
+                Console.WriteLine(response.Message);
+                return;
+            }
+
+            Console.WriteLine(Environment.NewLine + $"Users in the chat {chatName}");
+
+            foreach (string name in response.UserNames)
+            {
+                Console.WriteLine(name);
+            }
         }
 
         private void GotoMainMenuRequestHandler()
         {
-            throw new NotImplementedException();
+            var request = new GoToMainMenuRequest();
+            request.Sender = UserName;
+
+            responseHandlers.Add(request.Id, GotoMainMenuResponseHandler);
+            SendMessageAesEncrypted(request, serverKey);
+
+            while (responseHandlers.ContainsKey(request.Id)) { }
         }
 
         private void GotoMainMenuResponseHandler(string responseInJson)
         {
-            throw new NotImplementedException();
-        }
+            GoToMainMenuResponse response = JsonSerializer.Deserialize<GoToMainMenuResponse>(responseInJson);
 
-        private void GoToChatRequestHandler()
-        {
-            throw new NotImplementedException();
-        }
+            if (response.Code != StatusCode.Ok)
+            {
+                Console.WriteLine(response.Message);
+                return;
+            }
 
-        private void GoToChatResponseHandler(string responseInJson)
-        {
-            throw new NotImplementedException();
+            userState = UserState.Authorized;
         }
 
         private void ExitRequestHandler()
-        {
-            Dispose();
-        }
-
-        private void ExitResponseHandler(string responseInJson)
         {
             Dispose();
         }

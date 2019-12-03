@@ -43,7 +43,10 @@ namespace ChatServer
                 { ClientAction.Login, LoginHandler },
                 { ClientAction.Register, RegisterHandler },
                 { ClientAction.ShowAllChats, ShowAllChatsHandler },
-                { ClientAction.CreateChat, CreateChatHandler }
+                { ClientAction.CreateChat, CreateChatHandler },
+                { ClientAction.EnterChat, EnterChatHandler },
+                { ClientAction.ShowUsersInChat, ShowUsersInChatHandler },
+                { ClientAction.GoToMainMenu, GoToMainMenuHandler },
             };
         }
 
@@ -59,11 +62,9 @@ namespace ChatServer
                 Console.WriteLine(
                     $"Key exchanged successfully. Connection configured. Id-{Id}; Key-{Convert.ToBase64String(aesEncryption.GetKey())}");
 
-                // handle requests from client
-
                 while (true)
                 {
-                     byte[] rawMessage = tcpClient.GetMessage();
+                    byte[] rawMessage = tcpClient.GetMessage();
 
                     string messageInJson = ParseMessageToJson(rawMessage, ClientAesKey);
 
@@ -166,6 +167,8 @@ namespace ChatServer
                     throw new UserAlreadySignedInException(request.Sender);
                 }
 
+                CurrentUser = storedUser;
+                CurrentUser.State = UserState.Authorized;
                 server.UserRepository.UpdateState(storedUser.Name, UserState.Authorized);
                 Console.WriteLine($"{request.Sender} signed in");
 
@@ -275,6 +278,7 @@ namespace ChatServer
                 server.UserRepository.UpdateState(creator.Name, UserState.InChat);
 
                 server.ChatRepository.AddChat(newChat);
+                creator.CurrentChat = newChat;
 
                 var response = new CreateChatResponse
                 {
@@ -305,18 +309,146 @@ namespace ChatServer
             }
         }
 
-        private void EnterChatHandler(Message message)
+        private void EnterChatHandler(string requestInJson)
         {
-            //IChat chat = server.ChatRepository.GetChat(message.Headers["chatName"]);
-            //if (chat == null)
-            //{
-            //    SendErrorResponse();
-            //    return;
-            //}
-            //chat.AddUser(user);
-            //user.CurrentChat = chat;
-            //server.UserRepository.UpdateState(user.Name, UserState.InChat);
-            //SendSuccessResponse(chat.Key);
+            EnterChatRequest request = JsonSerializer.Deserialize<EnterChatRequest>(requestInJson);
+
+            var response = new EnterChatResponse
+            {
+                RequestId = request.Id
+            };
+
+            try
+            {
+                User storedUser = server.UserRepository.GetByName(request.Sender);
+                IChat chat = server.ChatRepository.GetChat(request.ChatName);
+                if (chat == null)
+                {
+                    throw new ChatNotFoundException(request.ChatName);
+                }
+
+                if (storedUser.State != UserState.Authorized)
+                {
+                    throw new NotEnoughRightsException(request.Sender, storedUser.State, request.Action);
+                }
+
+                chat.AddUser(storedUser);
+                storedUser.CurrentChat = chat;
+
+                storedUser.State = UserState.InChat;
+
+                response.Key = chat.Key;
+                response.Code = StatusCode.Ok;
+            }
+            catch (NedoGramException customException)
+            {
+                response.Message = customException.Message;
+                response.Code = StatusCode.ClientError;
+            }
+            catch (Exception)
+            {
+                response.Message = "Internal error";
+                response.Code = StatusCode.ServerError;
+            }
+            finally
+            {
+                SendMessageAesEncrypted(response, ClientAesKey);
+            }
+        }
+
+        private void ShowUsersInChatHandler(string requestInJson)
+        {
+            ShowUsersInChatRequest request = JsonSerializer.Deserialize<ShowUsersInChatRequest>(requestInJson);
+
+            var response = new ShowUsersInChatResponse
+            {
+                RequestId = request.Id
+            };
+
+            try
+            {
+                IChat chat = server.ChatRepository.GetChat(request.ChatName);
+
+                if (chat == null)
+                {
+                    throw new ChatNotFoundException(request.ChatName);
+                }
+
+                IReadOnlyCollection<string> userNames = chat.GetUsers().Select(user => user.Name).ToArray();
+
+                response.UserNames = userNames;
+                response.Code = StatusCode.Ok;
+
+                SendMessageAesEncrypted(response, ClientAesKey);
+            }
+            catch (NedoGramException nedoGramException)
+            {
+                response.Message = nedoGramException.Message;
+                response.Code = StatusCode.ClientError;
+
+                SendMessageAesEncrypted(response, ClientAesKey);
+
+                Console.WriteLine($"{request.Action}: {request.Sender} - {nedoGramException.Message}");
+            }
+            catch (Exception systemException)
+            {
+                response.Message = "Internal error";
+                response.Code = StatusCode.ServerError;
+
+                SendMessageAesEncrypted(response, ClientAesKey);
+
+                Console.WriteLine($"{request.Action}: {request.Sender} - {systemException.Message}");
+            }
+        }
+
+        private void GoToMainMenuHandler(string requestInJson)
+        {
+            GoToMainMenuRequest request = JsonSerializer.Deserialize<GoToMainMenuRequest>(requestInJson);
+
+            var response = new ShowUsersInChatResponse
+            {
+                RequestId = request.Id
+            };
+
+            try
+            {
+                User user = server.UserRepository.GetByName(request.Sender);
+
+                if (user == null)
+                {
+                    throw new UserNotFoundException(request.Sender);
+                }
+
+                if (user.State != UserState.InChat && user.State != UserState.Authorized)
+                {
+                    throw new NotEnoughRightsException(request.Sender, user.State, ClientAction.GoToMainMenu);
+                }
+
+                user.CurrentChat.RemoveUser(user.Name);
+                user.CurrentChat = null;
+                user.State = UserState.Authorized;
+                response.Code = StatusCode.Ok;
+
+                SendMessageAesEncrypted(response, ClientAesKey);
+            }
+            catch (NedoGramException nedoGramException)
+            {
+                response.Message = nedoGramException.Message;
+                response.Code = StatusCode.ClientError;
+
+                SendMessageAesEncrypted(response, ClientAesKey);
+
+                Console.WriteLine($"{request.Action}: {request.Sender} - {nedoGramException.Message}");
+            }
+            catch (Exception systemException)
+            {
+                response.Message = "Internal error";
+                response.Code = StatusCode.ServerError;
+
+                SendMessageAesEncrypted(response, ClientAesKey);
+
+                Console.WriteLine($"{request.Action}: {request.Sender} - {systemException.Message}");
+            }
         }
 
         private void MessageHandler(Message message, byte[] rawMessage)
@@ -324,14 +456,6 @@ namespace ChatServer
             //server.MessageSender.SendToChat(message.Headers["chat"], message);
 
             //server.BroadcastMessage(rawMessage, this);
-        }
-
-        private void ExitChatHandler(Message message)
-        {
-            CurrentUser.CurrentChat.RemoveUser(CurrentUser.Name);
-            CurrentUser.CurrentChat = null;
-            server.UserRepository.UpdateState(CurrentUser.Name, UserState.Authorized);
-            //SendSuccessResponse();
         }
 
         private string ParseMessageToJson(byte[] rawMessage, byte[] aesKey)

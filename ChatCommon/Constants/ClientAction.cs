@@ -9,9 +9,8 @@
         CreateChat,
         EnterChat,
         SendMessage,
-        ShowUsers,
+        ShowUsersInChat,
         GoToMainMenu,
-        GoToChatMenu,
         Exit
     }
 }
