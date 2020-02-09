@@ -6,15 +6,7 @@
   </PropertyGroup>
 
   <ItemGroup>
-    <PackageReference Include="StyleCop.Analyzers" Version="1.1.118">
-      <PrivateAssets>all</PrivateAssets>
-      <IncludeAssets>runtime; build; native; contentfiles; analyzers; buildtransitive</IncludeAssets>
-    </PackageReference>
     <PackageReference Include="System.Text.Json" Version="4.6.0" />
   </ItemGroup>
-
-  <PropertyGroup>
-    <CodeAnalysisRuleSet>..\Stylecop.ruleset</CodeAnalysisRuleSet>
-  </PropertyGroup>
 
 </Project>

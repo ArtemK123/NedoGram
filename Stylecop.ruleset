@@ -1,6 +1,6 @@
 <?xml version="1.0" encoding="utf-8" ?>
 <RuleSet Name="Custom ruleset" Description="Custom rules" ToolsVersion="14.0">
-  <Rules AnalyzerId="StyleCop.Analyzers" RuleNamespace="StyleCop.CSharp.ReadabilityRules">
+  <Rules AnalyzerId="StyleCop.Analyzers" RuleNamespace="StyleCop.Analyzers">
     <Rule Id="S3060" Action="Warning" />
     <Rule Id="S4275" Action="Warning" />
     <Rule Id="S3869" Action="Warning" />
